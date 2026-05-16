@@ -1,0 +1,45 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mcpforoura",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "migrations": [
+    {
+      "new_sqlite_classes": ["OuraMCP"],
+      "tag": "v1"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "OuraMCP",
+        "name": "MCP_OBJECT"
+      }
+    ]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "<ADD_OAUTH_KV_NAMESPACE_ID>"
+    },
+    {
+      "binding": "OURA_TOKENS",
+      "id": "<ADD_OURA_TOKENS_NAMESPACE_ID>"
+    },
+    {
+      "binding": "OURA_CACHE",
+      "id": "<ADD_OURA_CACHE_NAMESPACE_ID>"
+    }
+  ],
+  "vars": {
+    "OURA_REDIRECT_URI": "https://mcpforoura.smirnovlabs.com/oura/callback",
+    "PUBLIC_BASE_URL": "https://mcpforoura.smirnovlabs.com"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "dev": {
+    "port": 8789
+  }
+}

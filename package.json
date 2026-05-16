@@ -1,0 +1,39 @@
+{
+  "name": "@smirnovlabs/mcpforoura",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hosted remote MCP server for Oura Ring on Cloudflare Workers with OAuth",
+  "author": "Ivan Smirnov <isgsmirnov@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "type-check": "tsc --noEmit",
+    "test": "npm run test:unit && npm run test:workers",
+    "test:unit": "vitest run --config vitest.config.ts --passWithNoTests",
+    "test:workers": "vitest run --config vitest.worker.config.ts --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.3.1",
+    "@modelcontextprotocol/sdk": "1.28.0",
+    "agents": "^0.8.5",
+    "hono": "^4.12.9",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.13.4",
+    "@types/node": "^25.3.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "wrangler": "^4.77.0"
+  }
+}
