@@ -4,11 +4,13 @@ Hosted remote MCP server for [Oura Ring](https://ouraring.com), live at **https:
 
 This is a small-scale connector (3-user cap). Not affiliated with Oura Health Oy.
 
-**Status:** deployed and serving. Original 8-tool spec complete (M1–M8). KV cache live (M7). Phase 2–5 v2 tool expansion in progress (14 more tools across Tier A wrappers, composites, analytics, and cycle analytics).
+**Status:** deployed and serving. 24 tools live across 5 implementation phases on top of the original M1-M8. KV cache live (M7). Phase 1–5 v2 tool expansion complete (Tier A wrappers, composites, analytics, and cycle analytics).
 
 ## What you can ask
 
-Tools available right now:
+24 tools live across 5 phases:
+
+**Core (M6 originals)**
 
 | Tool | When to use |
 |---|---|
@@ -18,15 +20,49 @@ Tools available right now:
 | `ping` | Diagnostic. Verifies the connector is authenticated and reachable. |
 | `_internal_personal_info` | Diagnostic. Verifies the Oura token works and the API is responding. |
 
-Planned (not yet implemented):
+**Phase 1 — Activity & tagging**
 
 | Tool | When to use |
 |---|---|
-| `get_workouts` | List logged or auto-detected workouts over a range. |
-| `get_sessions` | List mindfulness sessions (meditation, breathing). |
-| `get_heart_rate_series` | Intraday HR time-series, up to 24h window, bucketed. |
-| `get_tags` | Custom tags users log (caffeine, alcohol, etc.). |
-| `compare_to_baseline` | "Is this normal for me?" Compares a day's metric to your 30- and 90-day personal baselines. |
+| `get_workouts` | List logged or auto-detected workouts over a date range (up to 180 days). |
+| `get_sessions` | List mindfulness sessions (meditation, breathing, relaxation). |
+| `get_heart_rate_series` | Intraday HR time-series within a 24h window, bucketed to 5min/15min/raw. |
+| `get_tags` | Custom tags users log (caffeine, alcohol, custom notes). |
+| `compare_to_baseline` | "Is this normal for me?" Compares a day's metric to 30- and 90-day personal baselines. |
+
+**Phase 2 — Tier A daily metrics**
+
+| Tool | When to use |
+|---|---|
+| `get_stress` | Daily high-stress and recovery seconds for a date. |
+| `get_spo2` | Nightly blood-oxygen (SpO2) average and breathing disturbance index. |
+| `get_resilience` | Oura's long-term stress recovery capacity score for a date. |
+| `get_cardio_age` | Cardiovascular-age estimate derived from HRV, resting HR, and other signals. |
+| `get_vo2_max` | Most recent VO2 max measurement within 30 days of the queried date. |
+| `get_recommended_sleep_time` | Oura's recommended bedtime window for a date. |
+| `get_rest_mode_periods` | List illness/recovery rest-mode periods over a date range. |
+
+**Phase 3 — Composite tools**
+
+| Tool | When to use |
+|---|---|
+| `get_morning_briefing` | "How am I today?" Structured snapshot: readiness + recommended sleep time + yesterday's stats. |
+| `get_weekly_recap` | 1–28 day window with per-metric mean/min/max. Default 7 days. |
+
+**Phase 4 — Analytics**
+
+| Tool | When to use |
+|---|---|
+| `find_anomalies` | Flag days whose metric deviates >N σ from the rolling-window mean. |
+| `correlate_tag_with_metric` | "Does alcohol hurt my HRV?" Compare metric stats on tagged vs. untagged days. |
+
+**Phase 5 — Cycle analytics**
+
+| Tool | When to use |
+|---|---|
+| `get_cycle_phase` | Current menstrual cycle phase (menstrual/follicular/ovulatory/luteal) for a date. |
+| `get_cycle_history` | Most recent N cycles with start date, length, and regularity summary. |
+| `compare_metric_across_cycle_phases` | Mean/median/stdev of a metric bucketed by cycle phase across a lookback window. |
 
 ## Adding the connector in Claude
 
@@ -117,7 +153,8 @@ Deployed at `https://mcp-oura.smirnov.link` on the Smirnov Labs Cloudflare accou
 | D3 — Push to `Smirnov-Labs/mcpforoura` on GitHub | ✅ |
 | M7 — KV response cache with date-aware TTLs | ✅ |
 | M8 — Tools 4–8 (workouts, sessions, HR series, tags, baseline) | ✅ |
-| M9 — Vitest tests + deploy-docs polish | not started |
+| Phase 1–5 — 19 additional tools (Tier A, composites, analytics, cycle) | ✅ |
+| M9 — Vitest tests + deploy-docs polish | ✅ |
 
 ## License
 

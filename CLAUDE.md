@@ -56,19 +56,39 @@ src/
 │   ├── scopes.ts                OURA_SCOPES list
 │   └── types.ts                 DailySleep, DailyReadiness, DailyActivity, SleepPeriod, ...
 ├── storage/
-│   └── tokens.ts                encrypted save/load/delete on OURA_TOKENS KV
+│   ├── tokens.ts                encrypted save/load/delete on OURA_TOKENS KV
+│   └── cache.ts                 KV response cache with date-aware TTLs
 ├── crypto.ts                    deriveKey (HKDF-SHA256), encrypt/decrypt (AES-GCM 256),
 │                                sha256HexTruncated
 ├── errors.ts                    OuraReauthRequired, OuraAccountUnavailable,
 │                                OuraEndpointGated, OuraRateLimited,
 │                                OuraInsufficientBaseline, OuraInvalidInput
 └── mcp/
-    ├── registerTools.ts         registers all tools on the McpServer
+    ├── registerTools.ts         registers all 24 tools on the McpServer
     └── tools/
-        ├── dates.ts             isIsoDate, resolveDate, shiftDate, daysBetween
-        ├── daily-summary.ts     get_daily_summary
-        ├── date-range.ts        get_date_range (8 metrics × multi-endpoint)
-        └── last-night-sleep.ts  get_last_night_sleep
+        ├── dates.ts                         isIsoDate, resolveDate, shiftDate, daysBetween
+        ├── daily-summary.ts                 get_daily_summary
+        ├── date-range.ts                    get_date_range (8 metrics × multi-endpoint)
+        ├── last-night-sleep.ts              get_last_night_sleep
+        ├── get-workouts.ts                  get_workouts
+        ├── get-sessions.ts                  get_sessions
+        ├── get-tags.ts                      get_tags
+        ├── get-heart-rate-series.ts         get_heart_rate_series
+        ├── compare-to-baseline.ts           compare_to_baseline
+        ├── get-stress.ts                    get_stress
+        ├── get-spo2.ts                      get_spo2
+        ├── get-resilience.ts                get_resilience
+        ├── get-cardio-age.ts                get_cardio_age
+        ├── get-vo2-max.ts                   get_vo2_max
+        ├── get-recommended-sleep-time.ts    get_recommended_sleep_time
+        ├── get-rest-mode-periods.ts         get_rest_mode_periods
+        ├── get-morning-briefing.ts          get_morning_briefing
+        ├── get-weekly-recap.ts              get_weekly_recap
+        ├── find-anomalies.ts                find_anomalies
+        ├── correlate-tag-with-metric.ts     correlate_tag_with_metric
+        ├── get-cycle-phase.ts               get_cycle_phase
+        ├── get-cycle-history.ts             get_cycle_history
+        └── compare-metric-across-cycle-phases.ts  compare_metric_across_cycle_phases
 ```
 
 ## Adding a new tool
@@ -148,15 +168,61 @@ For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Our
 - **`FormDataEntryValue` is a DOM type.** Not in `lib: ["es2021"]`. Use `string | File | null` for `formData.get(...)` returns.
 - **The OAuth provider's `props` field is how user identity flows from callback to McpAgent.** Inside the agent, `this.props.ouraUserId` is set; outside, it's `undefined`.
 
+## Tool inventory
+
+24 tools registered in `src/mcp/registerTools.ts`:
+
+**Diagnostics (2)**
+- `ping` — auth + connectivity check, no Oura call
+- `_internal_personal_info` — token liveness probe
+
+**Core (3, M6 originals)**
+- `get_daily_summary` — single-day sleep + readiness + activity snapshot
+- `get_date_range` — single metric over up to 180 days
+- `get_last_night_sleep` — most recent night's detailed sleep data
+
+**Phase 1 — Activity & tagging (5)**
+- `get_workouts` — logged/auto-detected workouts, up to 180 days
+- `get_sessions` — mindfulness sessions (meditation, breathing, relaxation)
+- `get_heart_rate_series` — intraday HR time-series, 24h window, bucketed
+- `get_tags` — user-annotated tags (caffeine, alcohol, custom notes)
+- `compare_to_baseline` — day's metric vs. 30- and 90-day personal rolling baselines
+
+**Phase 2 — Tier A daily metrics (7)**
+- `get_stress` — daily high-stress + recovery seconds
+- `get_spo2` — nightly SpO2 average + breathing disturbance index
+- `get_resilience` — long-term stress recovery capacity score
+- `get_cardio_age` — cardiovascular-age estimate
+- `get_vo2_max` — most recent VO2 max within 30 days of queried date
+- `get_recommended_sleep_time` — Oura's recommended bedtime window
+- `get_rest_mode_periods` — illness/recovery rest-mode periods, up to 365 days
+
+**Phase 3 — Composites (2)**
+- `get_morning_briefing` — readiness + recommended sleep time + yesterday's stats in one call
+- `get_weekly_recap` — 1–28 day window with per-metric mean/min/max
+
+**Phase 4 — Analytics (2)**
+- `find_anomalies` — flag days deviating >N σ from rolling mean
+- `correlate_tag_with_metric` — metric stats on tagged vs. untagged days
+
+**Phase 5 — Cycle analytics (3)**
+- `get_cycle_phase` — current menstrual cycle phase + day-of-cycle for a date
+- `get_cycle_history` — most recent N cycles with length + regularity summary
+- `compare_metric_across_cycle_phases` — metric bucketed by cycle phase across lookback window
+
 ## Status
 
-Built so far (M1–M6 of the original spec):
+All milestones complete:
 - ✅ Scaffold, OAuth provider, Hono consent, Oura OAuth flow B, encrypted tokens, OuraClient with refresh/disambig/backoff
-- ✅ Tools: `ping`, `_internal_personal_info`, `get_daily_summary`, `get_date_range`, `get_last_night_sleep`
+- ✅ KV response cache with date-aware TTLs (M7)
+- ✅ 24 tools live (M6 core 3 + Phase 1–5 additional 19 + 2 diagnostics)
+- ✅ Vitest unit tests: 74 tests across 12 files (M9)
+- ✅ Off-by-one fixes: `span >= MAX_DAYS` in workouts, sessions, tags, rest_mode_periods
 
-Pending:
-- M7 — KV response cache with date-aware TTLs
-- M8 — `get_workouts`, `get_sessions`, `get_heart_rate_series`, `get_tags`, `compare_to_baseline`
-- M9 — Vitest tests, deploy-docs polish
+## Known limits
+
+- **Cycle tools may 404.** `get_cycle_phase`, `get_cycle_history`, and `compare_metric_across_cycle_phases` depend on the Oura `cycle` endpoint. If not enabled for an account (requires opt-in in the Oura app), they return a graceful `available: false` response.
+- **VO2 max is sparse.** Oura only computes VO2 max from outdoor runs/walks with GPS. Measurements may be absent for weeks.
+- **Cache-hit-skips-network integration test** deferred. The 17-test cache suite + OuraClient unit tests cover the behavior transitively. A dedicated `test/oura-client-cache.worker.test.ts` can be added later if this becomes a regression source.
 
 The original spec lives in the project's brainstorming notes; the high-value pieces are encoded above.
