@@ -4,7 +4,7 @@ Hosted remote MCP server for [Oura Ring](https://ouraring.com), live at **https:
 
 This is a small-scale connector (3-user cap). Not affiliated with Oura Health Oy.
 
-**Status:** deployed and serving. 5 tools live (M1–M6), KV response cache live (M7). 5 additional tools and tests are next (M8–M9). The original 8-tool spec is the v1 target; an additional 11 tools across Tier A/B/C and cycle analytics are spec'd for v2.
+**Status:** deployed and serving. Original 8-tool spec complete (M1–M8). KV cache live (M7). Phase 2–5 v2 tool expansion in progress (14 more tools across Tier A wrappers, composites, analytics, and cycle analytics).
 
 ## What you can ask
 
@@ -116,7 +116,7 @@ Deployed at `https://mcp-oura.smirnov.link` on the Smirnov Labs Cloudflare accou
 | D2 — CLAUDE.md + expanded README + LICENSE | ✅ |
 | D3 — Push to `Smirnov-Labs/mcpforoura` on GitHub | ✅ |
 | M7 — KV response cache with date-aware TTLs | ✅ |
-| M8 — Tools 4–8 (workouts, sessions, HR series, tags, baseline) | not started |
+| M8 — Tools 4–8 (workouts, sessions, HR series, tags, baseline) | ✅ |
 | M9 — Vitest tests + deploy-docs polish | not started |
 
 ## License
