@@ -9,6 +9,13 @@ import { getHeartRateSeriesSchema, executeGetHeartRateSeries } from "./tools/get
 import { getSessionsSchema, executeGetSessions } from "./tools/get-sessions.js";
 import { getTagsSchema, executeGetTags } from "./tools/get-tags.js";
 import { getWorkoutsSchema, executeGetWorkouts } from "./tools/get-workouts.js";
+import { getStressSchema, executeGetStress } from "./tools/get-stress.js";
+import { getSpo2Schema, executeGetSpo2 } from "./tools/get-spo2.js";
+import { getResilienceSchema, executeGetResilience } from "./tools/get-resilience.js";
+import { getCardioAgeSchema, executeGetCardioAge } from "./tools/get-cardio-age.js";
+import { getVo2MaxSchema, executeGetVo2Max } from "./tools/get-vo2-max.js";
+import { getRecommendedSleepTimeSchema, executeGetRecommendedSleepTime } from "./tools/get-recommended-sleep-time.js";
+import { getRestModePeriodsSchema, executeGetRestModePeriods } from "./tools/get-rest-mode-periods.js";
 
 interface ToolError {
   code?: string;
@@ -173,5 +180,89 @@ export function registerOuraTools(server: McpServer, env: Env, props: AuthProps)
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     clientTool(env, props, executeCompareToBaseline)
+  );
+
+  server.registerTool(
+    "get_stress",
+    {
+      title: "Daily Stress",
+      description:
+        "Get daily stress metrics (high-stress and recovery seconds) for a date. Pass user's LOCAL date as strict YYYY-MM-DD.",
+      inputSchema: getStressSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetStress)
+  );
+
+  server.registerTool(
+    "get_spo2",
+    {
+      title: "Daily SpO2",
+      description:
+        "Get nightly blood-oxygen (SpO2) average and breathing disturbance index for a date. Useful for altitude effects, suspected sleep apnea, or illness tracking. Pass user's LOCAL date as strict YYYY-MM-DD.",
+      inputSchema: getSpo2Schema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetSpo2)
+  );
+
+  server.registerTool(
+    "get_resilience",
+    {
+      title: "Daily Resilience",
+      description:
+        "Get the resilience score for a date — Oura's long-term stress recovery capacity metric. Levels: limited / adequate / solid / strong / exceptional. Pass user's LOCAL date as strict YYYY-MM-DD.",
+      inputSchema: getResilienceSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetResilience)
+  );
+
+  server.registerTool(
+    "get_cardio_age",
+    {
+      title: "Cardiovascular Age",
+      description:
+        "Get Oura's cardiovascular-age estimate for a date — a heart-health proxy derived from HRV, resting HR, and other signals. Pass user's LOCAL date as strict YYYY-MM-DD.",
+      inputSchema: getCardioAgeSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetCardioAge)
+  );
+
+  server.registerTool(
+    "get_vo2_max",
+    {
+      title: "VO2 Max",
+      description:
+        "Get the most recent VO2 max measurement within 30 days of the queried date. Oura computes VO2 max from outdoor walks/runs, so measurements may be sparse. Pass user's LOCAL date as strict YYYY-MM-DD.",
+      inputSchema: getVo2MaxSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetVo2Max)
+  );
+
+  server.registerTool(
+    "get_recommended_sleep_time",
+    {
+      title: "Recommended Sleep Time",
+      description:
+        "Get Oura's recommended bedtime window for a date as start/end HH:MM in user's local time, with a status and recommendation field. Pass user's LOCAL date as strict YYYY-MM-DD.",
+      inputSchema: getRecommendedSleepTimeSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetRecommendedSleepTime)
+  );
+
+  server.registerTool(
+    "get_rest_mode_periods",
+    {
+      title: "Rest Mode Periods",
+      description:
+        "List rest-mode periods (illness/recovery markers) over a date range. Pass user's LOCAL dates as strict YYYY-MM-DD; max 365-day range.",
+      inputSchema: getRestModePeriodsSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetRestModePeriods)
   );
 }
