@@ -1,6 +1,6 @@
 # mcpforoura
 
-Hosted remote MCP server for Oura Ring, deployed at `https://mcpforoura.smirnovlabs.com/mcp`. Multi-tenant OAuth via `@cloudflare/workers-oauth-provider`; each user authenticates to their own Oura account. Read-only.
+Hosted remote MCP server for Oura Ring, deployed at `https://mcp-oura.smirnov.link/mcp`. Multi-tenant OAuth via `@cloudflare/workers-oauth-provider`; each user authenticates to their own Oura account. Read-only.
 
 ## Tools
 
@@ -10,7 +10,7 @@ Eight tools covering daily summaries, ranged trends, last-night sleep, workouts,
 
 1. Create the Oura developer application:
    - https://cloud.ouraring.com → API Applications → New
-   - Redirect URI: `https://mcpforoura.smirnovlabs.com/oura/callback`
+   - Redirect URI: `https://mcp-oura.smirnov.link/oura/callback`
    - Store the issued Client ID / Secret.
 
 2. Create Cloudflare KV namespaces and paste IDs into `wrangler.jsonc`:
@@ -31,11 +31,11 @@ Eight tools covering daily summaries, ranged trends, last-night sleep, workouts,
 
 4. Deploy: `npm run deploy`
 
-5. Map the custom domain `mcpforoura.smirnovlabs.com` to the worker in the Cloudflare dashboard.
+5. Map the custom domain `mcp-oura.smirnov.link` to the worker in the Cloudflare dashboard.
 
 ## Setup (user)
 
-In Claude → Settings → Connectors → Add custom: `https://mcpforoura.smirnovlabs.com/mcp`. Approve the MCP authorization, then complete Oura's OAuth consent.
+In Claude → Settings → Connectors → Add custom: `https://mcp-oura.smirnov.link/mcp`. Approve the MCP authorization, then complete Oura's OAuth consent.
 
 ## Development
 

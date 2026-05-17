@@ -120,12 +120,67 @@ function renderHomePage(request: Request) {
   );
 }
 
+const PRIVACY_LAST_UPDATED = "2026-05-16";
+const TOS_LAST_UPDATED = "2026-05-16";
+
 function renderPrivacyPage() {
   return renderLayout(
     `${APP_NAME} Privacy Policy`,
     `<div class="card">
       <h1>Privacy Policy</h1>
-      <p>This service stores your Oura OAuth tokens encrypted in Cloudflare KV solely to fulfil MCP tool requests you initiate through your connected client. Oura ring data is fetched on demand and may be cached briefly (up to 24 hours) keyed to your Oura user ID. Tokens are deleted when you revoke this connector. Cloudflare is the only third-party infrastructure used. Contact <a href="mailto:ivan@smirnovlabs.com">ivan@smirnovlabs.com</a>.</p>
+      <p><strong>Last updated:</strong> ${escapeHtml(PRIVACY_LAST_UPDATED)}</p>
+      <h2>Overview</h2>
+      <p>This service is a hosted Model Context Protocol (MCP) server for Oura Ring. It lets a user connect their Oura account to supported MCP clients (such as Claude) through OAuth.</p>
+      <h2>Data We Access</h2>
+      <p>When you authorize this service with Oura, we access only the data your granted OAuth scopes permit, which can include daily readiness, sleep, activity, stress, heart-rate series, workouts, mindfulness sessions, user-entered tags, SpO2, and ring/personal metadata.</p>
+      <h2>How We Use Data</h2>
+      <p>We use your Oura data exclusively to fulfil MCP tool requests you initiate through your connected client. We refresh OAuth access tokens when needed using your Oura refresh token, and operate and secure the hosted MCP service. We do not sell or share your Oura data with third parties.</p>
+      <h2>Data Storage</h2>
+      <p>This service runs on Cloudflare Workers. It does not maintain a long-term database of your Oura ring data. We store the minimum data required to operate the connector:</p>
+      <ul>
+        <li>Your Oura OAuth access token and refresh token, encrypted at rest using AES-GCM with a per-user key derived via HKDF-SHA256, in Cloudflare Workers KV.</li>
+        <li>Short-lived OAuth state required to complete authentication (expires within 10 minutes).</li>
+        <li>Short-lived response cache entries keyed to your Oura user ID, used to reduce Oura API load. Cache TTLs range from 5 minutes (today's data) to 24 hours (historical data) and expire automatically.</li>
+      </ul>
+      <p>We do not log Oura ring data contents. Operational logs are limited to non-sensitive service metadata.</p>
+      <h2>Data Retention</h2>
+      <p>Stored OAuth credentials are retained only as long as needed to keep your connector working. When you remove the connector from your MCP client or revoke the Oura OAuth grant, your stored tokens become unreachable on next use.</p>
+      <h2>Data Sharing</h2>
+      <p>We do not share your Oura data with third parties except with Cloudflare, which provides the hosting infrastructure (Workers, Workers KV) required to operate the service, when required by law, or when necessary to protect the security, integrity, or operation of the service. Cloudflare is the only third-party infrastructure provider used by this service.</p>
+      <h2>Security</h2>
+      <p>We use OAuth-based delegated access rather than asking for your Oura credentials. Tokens are encrypted at rest. Secrets are stored as Cloudflare Worker secrets, not in source control. No system can guarantee absolute security, but reasonable technical measures are used to reduce unauthorized access risk.</p>
+      <h2>Your Choices</h2>
+      <p>You can stop using this service at any time by removing the connector in your MCP client's settings, or by revoking the Oura OAuth grant for this application from your Oura account.</p>
+      <h2>Contact</h2>
+      <p>Questions about this policy or requests related to stored OAuth credentials: <a href="mailto:ivan@smirnovlabs.com">ivan@smirnovlabs.com</a>.</p>
+    </div>`
+  );
+}
+
+function renderTosPage() {
+  return renderLayout(
+    `${APP_NAME} Terms of Service`,
+    `<div class="card">
+      <h1>Terms of Service</h1>
+      <p><strong>Last updated:</strong> ${escapeHtml(TOS_LAST_UPDATED)}</p>
+      <h2>Acceptance</h2>
+      <p>By connecting this MCP server to your AI client and authorizing it with your Oura account, you agree to these terms. If you do not agree, do not use this service.</p>
+      <h2>Service description</h2>
+      <p>This service provides a hosted, read-only MCP connector that exposes your Oura Ring data to authorized MCP clients. The service is provided as-is, without warranty of any kind, for personal use by a limited set of authorized users.</p>
+      <h2>No affiliation with Oura</h2>
+      <p>This is an independent third-party service. It is not affiliated with, endorsed by, or sponsored by Oura Health Oy. "Oura" and related marks are trademarks of their respective owners.</p>
+      <h2>Acceptable use</h2>
+      <p>You agree to use this service only with Oura accounts you own or are explicitly authorized to access. You must not attempt to access other users' data, abuse rate limits, reverse-engineer the service to evade safeguards, or use the service for any unlawful purpose.</p>
+      <h2>Availability and reliability</h2>
+      <p>The service may be modified, paused, or discontinued at any time without notice. Best-effort uptime is provided but no SLA is offered. The service depends on the Oura API; outages or breaking changes upstream may affect availability.</p>
+      <h2>Limitation of liability</h2>
+      <p>To the maximum extent permitted by law, the operator shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of data, profits, or use, arising from your use of the service. Health metrics retrieved through this service are not medical advice; consult a qualified clinician for medical decisions.</p>
+      <h2>Termination</h2>
+      <p>You may stop using the service at any time by removing the connector from your MCP client and revoking the Oura OAuth grant. The operator may terminate or restrict your access at any time, with or without notice, especially for misuse.</p>
+      <h2>Changes</h2>
+      <p>These terms may be updated. The "Last updated" date above reflects the most recent change. Continued use after changes constitutes acceptance of the revised terms.</p>
+      <h2>Contact</h2>
+      <p><a href="mailto:ivan@smirnovlabs.com">ivan@smirnovlabs.com</a></p>
     </div>`
   );
 }
@@ -168,6 +223,7 @@ function renderErrorPage(message: string) {
 
 app.get("/", (c) => c.html(renderHomePage(c.req.raw)));
 app.get("/privacy", (c) => c.html(renderPrivacyPage()));
+app.get("/tos", (c) => c.html(renderTosPage()));
 
 app.get("/authorize", async (c) => {
   const oauthReqInfo = await c.env.OAUTH_PROVIDER.parseAuthRequest(c.req.raw);

@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mcpforoura",
+  "account_id": "aecb2d537c888e18286988183870e12a",
   "main": "src/index.ts",
   "compatibility_date": "2026-05-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -21,21 +22,27 @@
   "kv_namespaces": [
     {
       "binding": "OAUTH_KV",
-      "id": "<ADD_OAUTH_KV_NAMESPACE_ID>"
+      "id": "c6cef1ed9c8a4a7e9e5b1a8c02a1d257"
     },
     {
       "binding": "OURA_TOKENS",
-      "id": "<ADD_OURA_TOKENS_NAMESPACE_ID>"
+      "id": "098b62fe79784f37980f1dc6740e402f"
     },
     {
       "binding": "OURA_CACHE",
-      "id": "<ADD_OURA_CACHE_NAMESPACE_ID>"
+      "id": "d94d7ed98d754c36ab333d4f26376d2b"
     }
   ],
   "vars": {
-    "OURA_REDIRECT_URI": "https://mcpforoura.smirnovlabs.com/oura/callback",
-    "PUBLIC_BASE_URL": "https://mcpforoura.smirnovlabs.com"
+    "OURA_REDIRECT_URI": "https://mcp-oura.smirnov.link/oura/callback",
+    "PUBLIC_BASE_URL": "https://mcp-oura.smirnov.link"
   },
+  "routes": [
+    {
+      "pattern": "mcp-oura.smirnov.link",
+      "custom_domain": true
+    }
+  ],
   "observability": {
     "enabled": true
   },
