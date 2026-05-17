@@ -142,7 +142,7 @@ function renderPrivacyPage() {
       <ul>
         <li>Your Oura OAuth access token and refresh token, encrypted at rest using AES-GCM with a per-user key derived via HKDF-SHA256, in Cloudflare Workers KV.</li>
         <li>Short-lived OAuth state required to complete authentication (expires within 10 minutes).</li>
-        <li>Short-lived response cache entries keyed to your Oura user ID, used to reduce Oura API load. Cache TTLs range from 5 minutes (today's data) to 24 hours (historical data) and expire automatically.</li>
+        <li>Short-lived response cache entries keyed to your Oura user ID, encrypted at rest using the same AES-GCM/HKDF-SHA256 scheme as your tokens. Cache TTLs range from 5 minutes (today's data) to 24 hours (historical data) and expire automatically.</li>
       </ul>
       <p>We do not log Oura ring data contents. Operational logs are limited to non-sensitive service metadata.</p>
       <h2>Data Retention</h2>
