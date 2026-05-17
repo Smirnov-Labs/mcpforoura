@@ -5,6 +5,7 @@ import type {
   DailySleep,
   SleepPeriod,
 } from "../../oura/types.js";
+import { OuraInvalidInput } from "../../errors.js";
 import { round } from "./stats.js";
 
 export type Metric =
@@ -92,5 +93,7 @@ export async function fetchMetricPoints(
     });
     return docs.map((d) => ({ date: d.day, value: pickActivity(metric, d) }));
   }
-  throw new Error(`Unsupported metric: ${metric}`);
+  // Unreachable while every caller passes a typed Metric, but kept as a typed
+  // error so future ad-hoc callers get a structured response.
+  throw new OuraInvalidInput(`Unsupported metric: ${metric}`);
 }
