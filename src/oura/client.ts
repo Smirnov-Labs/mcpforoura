@@ -122,6 +122,27 @@ export class OuraClient {
     return data;
   }
 
+  async requestSafe<T>(
+    path: string,
+    query?: Record<string, string>
+  ): Promise<
+    | { ok: true; data: T }
+    | { ok: false; status: number; body: string }
+  > {
+    try {
+      const data = await this.request<T>(path, query);
+      return { ok: true, data };
+    } catch (err) {
+      if (err instanceof Error) {
+        const m = err.message.match(/failed \((\d+)\): (.*)$/s);
+        if (m) {
+          return { ok: false, status: Number.parseInt(m[1], 10), body: m[2] };
+        }
+      }
+      throw err;
+    }
+  }
+
   async requestList<T>(path: string, query?: Record<string, string>): Promise<OuraListResponse<T>> {
     return this.request<OuraListResponse<T>>(path, query);
   }
