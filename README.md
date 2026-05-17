@@ -1,6 +1,10 @@
 # mcpforoura
 
+[![smithery badge](https://smithery.ai/badge/issmirnov/oura)](https://smithery.ai/servers/issmirnov/oura) [![mcp registry](https://img.shields.io/badge/mcp%20registry-link.smirnov%2Fmcp--oura-blue)](https://registry.modelcontextprotocol.io/v0/servers?search=link.smirnov)
+
 Hosted remote MCP server for [Oura Ring](https://ouraring.com), live at **https://mcp-oura.smirnov.link/mcp**. Multi-tenant OAuth: each user authenticates to their own Oura account. Read-only. Built on Cloudflare Workers.
+
+Listed on [Smithery](https://smithery.ai/servers/issmirnov/oura) and the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=link.smirnov).
 
 Small-scale connector — currently in Oura's development-mode 10-user cap; production application is pending. Not affiliated with Oura Health Oy.
 

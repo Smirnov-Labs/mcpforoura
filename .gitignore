@@ -7,3 +7,5 @@ coverage/
 *.log
 .DS_Store
 worker-configuration.d.ts
+# Contains the MCP-publisher DNS private key. Never commit.
+mcp-publish.md
