@@ -1,8 +1,10 @@
 # mcpforoura
 
-Hosted remote MCP server for [Oura Ring](https://ouraring.com), deployed at **https://mcp-oura.smirnov.link/mcp**. Multi-tenant OAuth: each user authenticates to their own Oura account. Read-only. Built on Cloudflare Workers.
+Hosted remote MCP server for [Oura Ring](https://ouraring.com), live at **https://mcp-oura.smirnov.link/mcp**. Multi-tenant OAuth: each user authenticates to their own Oura account. Read-only. Built on Cloudflare Workers.
 
 This is a small-scale connector (3-user cap). Not affiliated with Oura Health Oy.
+
+**Status:** deployed and serving. 5 tools live (M1–M6). Cache layer, 5 additional tools, and tests are next (M7–M9). The original 8-tool spec is the v1 target; new tool ideas beyond that are being explored.
 
 ## What you can ask
 
@@ -98,6 +100,10 @@ Local development hits the same Oura redirect URI as production, so it's usually
 
 ## Status
 
+Deployed at `https://mcp-oura.smirnov.link` on the Smirnov Labs Cloudflare account. Custom domain mapped via the `routes` block in `wrangler.jsonc`. Three KV namespaces provisioned (`mcpforoura-OAUTH_KV`, `OURA_TOKENS`, `OURA_CACHE`). Four secrets set (`OURA_CLIENT_ID`, `OURA_CLIENT_SECRET`, `ENCRYPTION_SECRET`, `OAUTH_PROVIDER_ENCRYPTION_KEY`).
+
+### Build progress
+
 | Milestone | Status |
 |---|---|
 | M1 — Worker scaffold | ✅ |
@@ -106,9 +112,12 @@ Local development hits the same Oura redirect URI as production, so it's usually
 | M4 — OuraClient (refresh, 401 disambig, 429 backoff) | ✅ |
 | M5 — AES-GCM token encryption | ✅ |
 | M6 — Tools 1–3 | ✅ |
-| M7 — KV response cache | pending |
-| M8 — Tools 4–8 | pending |
-| M9 — Tests + deploy-docs polish | pending |
+| D1 — First deploy to `mcp-oura.smirnov.link` | ✅ |
+| D2 — CLAUDE.md + expanded README + LICENSE | ✅ |
+| D3 — Push to `Smirnov-Labs/mcpforoura` on GitHub | ✅ |
+| M7 — KV response cache with date-aware TTLs | not started |
+| M8 — Tools 4–8 (workouts, sessions, HR series, tags, baseline) | not started |
+| M9 — Vitest tests + deploy-docs polish | not started |
 
 ## License
 
