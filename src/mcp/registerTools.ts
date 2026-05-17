@@ -20,6 +20,12 @@ import { getMorningBriefingSchema, executeGetMorningBriefing } from "./tools/get
 import { getWeeklyRecapSchema, executeGetWeeklyRecap } from "./tools/get-weekly-recap.js";
 import { findAnomaliesSchema, executeFindAnomalies } from "./tools/find-anomalies.js";
 import { correlateTagWithMetricSchema, executeCorrelateTagWithMetric } from "./tools/correlate-tag-with-metric.js";
+import { getCyclePhaseSchema, executeGetCyclePhase } from "./tools/get-cycle-phase.js";
+import { getCycleHistorySchema, executeGetCycleHistory } from "./tools/get-cycle-history.js";
+import {
+  compareMetricAcrossCyclePhasesSchema,
+  executeCompareMetricAcrossCyclePhases,
+} from "./tools/compare-metric-across-cycle-phases.js";
 
 interface ToolError {
   code?: string;
@@ -316,5 +322,41 @@ export function registerOuraTools(server: McpServer, env: Env, props: AuthProps)
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     clientTool(env, props, executeCorrelateTagWithMetric)
+  );
+
+  server.registerTool(
+    "get_cycle_phase",
+    {
+      title: "Cycle Phase",
+      description:
+        "Get the current menstrual cycle phase (menstrual/follicular/ovulatory/luteal) and day-of-cycle for a date, plus the predicted next phase. Returns available=false with a reason if cycle data isn't enabled or available. Pass user's LOCAL date as strict YYYY-MM-DD.",
+      inputSchema: getCyclePhaseSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetCyclePhase)
+  );
+
+  server.registerTool(
+    "get_cycle_history",
+    {
+      title: "Cycle History",
+      description:
+        "List the most recent N (1-24, default 6) menstrual cycles with start date, length, predicted length, and a regularity summary (regular if stdev<5 days over 4+ complete cycles). Pass user's LOCAL end_date as strict YYYY-MM-DD.",
+      inputSchema: getCycleHistorySchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetCycleHistory)
+  );
+
+  server.registerTool(
+    "compare_metric_across_cycle_phases",
+    {
+      title: "Metric Across Cycle Phases",
+      description:
+        "Compute mean/median/stdev of a metric (HRV, sleep_score, readiness_score, etc.) bucketed by menstrual cycle phase across the lookback window (28-540 days, default 180). Use to answer 'is my HRV always lower in luteal?'. insufficient_data=true when <3 complete cycles or any phase has <3 days of data.",
+      inputSchema: compareMetricAcrossCyclePhasesSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeCompareMetricAcrossCyclePhases)
   );
 }
