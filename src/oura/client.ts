@@ -5,6 +5,7 @@ import {
   OuraRateLimited,
   OuraReauthRequired,
 } from "../errors.js";
+import { getCached, selectTTLSeconds, setCached, type CacheKey } from "../storage/cache.js";
 import { loadStoredToken, saveStoredToken } from "../storage/tokens.js";
 import { refreshAccessToken } from "./auth.js";
 
@@ -93,6 +94,10 @@ export class OuraClient {
   }
 
   async request<T>(path: string, query?: Record<string, string>): Promise<T> {
+    const cacheKey: CacheKey = { userId: this.userId, path, query };
+    const cached = await getCached<T>(this.env.OURA_CACHE, cacheKey);
+    if (cached !== null) return cached;
+
     await this.ensureFresh();
     let response = await this.callWithBackoff(path, query);
 
@@ -111,7 +116,10 @@ export class OuraClient {
       throw new Error(`Oura API ${path} failed (${response.status}): ${body}`);
     }
 
-    return (await response.json()) as T;
+    const data = (await response.json()) as T;
+    const ttlSeconds = selectTTLSeconds(path, query);
+    await setCached(this.env.OURA_CACHE, cacheKey, data, { ttlSeconds });
+    return data;
   }
 
   async requestList<T>(path: string, query?: Record<string, string>): Promise<OuraListResponse<T>> {
