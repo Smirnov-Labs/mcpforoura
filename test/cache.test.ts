@@ -146,4 +146,32 @@ describe("getCached / setCached roundtrip", () => {
     const got = await getCached(kv, key);
     expect(got).toBeNull();
   });
+
+  it("self-heals: getCached purges corrupt entries", async () => {
+    const kv = fakeKV();
+    const key: CacheKey = { userId: "u1", path: "/x" };
+    const builtKey = `cache:u1:x:${await paramsHash(undefined)}`;
+    await (kv as unknown as { put: KVNamespace["put"] }).put(builtKey, "not json");
+    await getCached(kv, key);
+    // After a parse-fail read, the corrupt entry should be deleted.
+    const afterPurge = await kv.get(builtKey);
+    expect(afterPurge).toBeNull();
+  });
+
+  it("setCached swallows KV write failures (graceful degradation)", async () => {
+    const failingKv = {
+      async get() {
+        return null;
+      },
+      async put() {
+        throw new Error("KV temporarily unavailable");
+      },
+      async delete() {
+        // no-op
+      },
+    } as unknown as KVNamespace;
+    const key: CacheKey = { userId: "u1", path: "/x" };
+    // Should not throw despite kv.put failing.
+    await expect(setCached(failingKv, key, { ok: true }, { ttlSeconds: 60 })).resolves.toBeUndefined();
+  });
 });

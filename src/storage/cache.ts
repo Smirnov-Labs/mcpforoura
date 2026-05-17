@@ -66,6 +66,13 @@ export async function getCached<T>(
   try {
     return JSON.parse(raw) as T;
   } catch {
+    // Corrupt entry — purge so subsequent reads skip straight to network
+    // instead of waiting for the TTL to expire.
+    try {
+      await kv.delete(k);
+    } catch {
+      // best-effort
+    }
     return null;
   }
 }
@@ -77,7 +84,12 @@ export async function setCached<T>(
   opts: CacheSetOptions
 ): Promise<void> {
   const k = await buildKey(key);
-  await kv.put(k, JSON.stringify(value), { expirationTtl: opts.ttlSeconds });
+  try {
+    await kv.put(k, JSON.stringify(value), { expirationTtl: opts.ttlSeconds });
+  } catch {
+    // KV write failed — degrade gracefully. The successfully-fetched value
+    // is still returned to the caller by request(); we just skip caching.
+  }
 }
 
 // Exports for test visibility only.
