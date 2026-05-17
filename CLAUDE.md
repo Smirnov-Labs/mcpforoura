@@ -6,7 +6,7 @@ Guidance for Claude Code sessions working in this repository.
 
 `mcpforoura` is a hosted, multi-tenant MCP server for the Oura Ring API. It runs on Cloudflare Workers, exposes a single `/mcp` endpoint, and authenticates MCP clients via OAuth2 (using `@cloudflare/workers-oauth-provider`). Each authenticated MCP client maps to a specific Oura user via a second OAuth flow handled by this server.
 
-Live at `https://mcp-oura.smirnov.link/mcp`. Cap is 3 users.
+Live at `https://mcp-oura.smirnov.link/mcp`. Cap is 10 users (Oura's default dev-mode limit). Production approval pending.
 
 ## Architecture at a glance
 
@@ -147,7 +147,7 @@ Account ID and KV namespace IDs are in `wrangler.jsonc`. Secrets are managed out
 
 ```bash
 echo -n "$VALUE" | npx wrangler secret put OURA_CLIENT_ID
-# repeat for OURA_CLIENT_SECRET, ENCRYPTION_SECRET, OAUTH_PROVIDER_ENCRYPTION_KEY
+# repeat for OURA_CLIENT_SECRET, ENCRYPTION_SECRET
 ```
 
 Custom domain `mcp-oura.smirnov.link` is configured via `routes` in `wrangler.jsonc` with `custom_domain: true`. Works automatically because `smirnov.link` is in the same CF account.

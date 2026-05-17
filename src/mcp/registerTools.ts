@@ -71,26 +71,6 @@ export function registerOuraTools(server: McpServer, env: Env, props: AuthProps)
   );
 
   server.registerTool(
-    "_internal_personal_info",
-    {
-      title: "Internal: Personal Info",
-      description:
-        "Internal diagnostic — calls Oura /personal_info to verify the token is live and the API is reachable. Not for end-user use.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-    },
-    async () => {
-      const client = new OuraClient(env, props.ouraUserId);
-      try {
-        const info = await client.personalInfo();
-        return jsonContent({ ok: true, personal_info: info });
-      } catch (error) {
-        return errorContent(error);
-      }
-    }
-  );
-
-  server.registerTool(
     "get_daily_summary",
     {
       title: "Daily Summary",

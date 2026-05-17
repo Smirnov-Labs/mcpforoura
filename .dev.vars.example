@@ -4,5 +4,3 @@ OURA_CLIENT_SECRET=
 
 # Encryption — generate with: openssl rand -base64 32
 ENCRYPTION_SECRET=
-COOKIE_SECRET=
-OAUTH_PROVIDER_ENCRYPTION_KEY=
