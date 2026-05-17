@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
 import type { AuthProps } from "./auth/types.js";
 import { registerOuraTools } from "./mcp/registerTools.js";
-import app from "./oauth-app.js";
+import app, { renderMcpHelloPage } from "./oauth-app.js";
 
 export class OuraMCP extends McpAgent<Env, Record<string, never>, AuthProps> {
   server = new McpServer({
@@ -24,7 +24,7 @@ export class OuraMCP extends McpAgent<Env, Record<string, never>, AuthProps> {
 // what is already a curated, read-only tool surface.
 const MCP_SCOPES = ["mcp"];
 
-export default new OAuthProvider({
+const oauthProvider = new OAuthProvider({
   apiRoute: "/mcp",
   apiHandler: OuraMCP.serve("/mcp"),
   defaultHandler: app,
@@ -50,3 +50,22 @@ export default new OAuthProvider({
     scopes_supported: MCP_SCOPES,
   },
 });
+
+// Wrap the OAuthProvider so we can intercept real browser GETs to /mcp and
+// serve a friendly "this is an MCP endpoint" page instead of a JSON 401.
+// Real MCP clients send Accept: application/json or text/event-stream (or
+// omit Accept entirely); they are unaffected and still hit the provider.
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    if (request.method === "GET" && url.pathname === "/mcp") {
+      const accept = request.headers.get("Accept") ?? "";
+      const wantsHtml = accept.includes("text/html");
+      const wantsMcp = accept.includes("application/json") || accept.includes("text/event-stream");
+      if (wantsHtml && !wantsMcp) {
+        return renderMcpHelloPage(url);
+      }
+    }
+    return oauthProvider.fetch(request, env, ctx);
+  },
+};

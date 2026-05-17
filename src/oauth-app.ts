@@ -256,6 +256,37 @@ function renderErrorPage(message: string) {
   );
 }
 
+export function renderMcpHelloPage(url: URL): Response {
+  const mcpUrl = `https://${url.host}/mcp`;
+  const wellKnownUrl = `https://${url.host}/.well-known/oauth-authorization-server`;
+  const html = renderLayout(
+    `${APP_NAME} — MCP endpoint`,
+    `<div class="card">
+      <p><strong>${escapeHtml(APP_NAME)}</strong></p>
+      <h1>MCP endpoint</h1>
+      <p>This is the MCP endpoint for <strong>${escapeHtml(APP_NAME)}</strong>. It's meant to be added to an MCP-compatible client (Claude, Cursor, etc.) — not opened in a browser.</p>
+      <p class="meta"><strong>Endpoint URL:</strong></p>
+      <p><code>${escapeHtml(mcpUrl)}</code></p>
+      <h2>What to do</h2>
+      <p>Copy the URL above and add it to your MCP client:</p>
+      <ul>
+        <li><strong>Claude (claude.ai):</strong> Settings → Connectors → Add custom connector → paste the URL above.</li>
+        <li><strong>Cursor / Windsurf / other IDE clients:</strong> See your client's documentation for adding a remote MCP server and paste the URL above.</li>
+        <li><strong>Roll-your-own:</strong> This server speaks streamable HTTP at the URL above. It requires OAuth 2.1 authorization; discovery metadata is at <a href="${escapeHtml(wellKnownUrl)}">${escapeHtml(wellKnownUrl)}</a>.</li>
+      </ul>
+      <div class="actions">
+        <a class="link-button primary" href="/">Home</a>
+        <a class="link-button secondary" href="/privacy">Privacy Policy</a>
+        <a class="link-button secondary" href="/tos">Terms of Service</a>
+      </div>
+    </div>`
+  );
+  return new Response(html, {
+    status: 200,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
 app.get("/", (c) => c.html(renderHomePage(c.req.raw)));
 app.get("/privacy", (c) => c.html(renderPrivacyPage()));
 app.get("/tos", (c) => c.html(renderTosPage()));
