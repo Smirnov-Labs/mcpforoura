@@ -36,7 +36,7 @@ export async function executeGetRestModePeriods(
   }
   const span = daysBetween(input.start, input.end);
   if (span < 0) throw new OuraInvalidInput("end must be on or after start.");
-  if (span > MAX_DAYS) throw new OuraInvalidInput(`Range too large (${span + 1} days). Max ${MAX_DAYS}.`);
+  if (span >= MAX_DAYS) throw new OuraInvalidInput(`Range too large (${span + 1} days). Max ${MAX_DAYS}.`);
 
   const docs = await client.collectAll<RestModePeriod>(
     "/usercollection/rest_mode_period",
