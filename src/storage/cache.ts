@@ -1,6 +1,6 @@
 // src/storage/cache.ts
 
-import { sha256HexTruncated } from "../crypto.js";
+import { decrypt, deriveKey, encrypt, sha256HexTruncated } from "../crypto.js";
 
 export interface CacheKey {
   userId: string;
@@ -58,16 +58,19 @@ export function selectTTLSeconds(
 
 export async function getCached<T>(
   kv: KVNamespace,
+  encryptionSecret: string,
   key: CacheKey
 ): Promise<T | null> {
   const k = await buildKey(key);
   const raw = await kv.get(k);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as T;
+    const cryptoKey = await deriveKey(key.userId, encryptionSecret);
+    const plaintext = await decrypt(raw, cryptoKey);
+    return JSON.parse(plaintext) as T;
   } catch {
-    // Corrupt entry — purge so subsequent reads skip straight to network
-    // instead of waiting for the TTL to expire.
+    // Either ciphertext is corrupt OR it's a legacy plaintext entry. Either
+    // way, evict so the caller does a fresh fetch.
     try {
       await kv.delete(k);
     } catch {
@@ -79,17 +82,42 @@ export async function getCached<T>(
 
 export async function setCached<T>(
   kv: KVNamespace,
+  encryptionSecret: string,
   key: CacheKey,
   value: T,
   opts: CacheSetOptions
 ): Promise<void> {
   const k = await buildKey(key);
   try {
-    await kv.put(k, JSON.stringify(value), { expirationTtl: opts.ttlSeconds });
+    const cryptoKey = await deriveKey(key.userId, encryptionSecret);
+    const ciphertext = await encrypt(JSON.stringify(value), cryptoKey);
+    await kv.put(k, ciphertext, { expirationTtl: opts.ttlSeconds });
   } catch {
-    // KV write failed — degrade gracefully. The successfully-fetched value
-    // is still returned to the caller by request(); we just skip caching.
+    // KV write failed (or encryption failed) — degrade gracefully.
   }
+}
+
+/**
+ * Deletes every cache entry under cache:{userId}:*. Best-effort — paginates
+ * via KV list, deletes each, swallows individual failures.
+ */
+export async function deleteAllCacheForUser(kv: KVNamespace, userId: string): Promise<number> {
+  const prefix = `cache:${userId}:`;
+  let cursor: string | undefined;
+  let deleted = 0;
+  do {
+    const result: KVNamespaceListResult<unknown> = await kv.list({ prefix, cursor });
+    for (const k of result.keys) {
+      try {
+        await kv.delete(k.name);
+        deleted++;
+      } catch {
+        // best-effort
+      }
+    }
+    cursor = result.list_complete ? undefined : result.cursor;
+  } while (cursor);
+  return deleted;
 }
 
 // Exports for test visibility only.

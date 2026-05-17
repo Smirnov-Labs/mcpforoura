@@ -95,7 +95,7 @@ export class OuraClient {
 
   async request<T>(path: string, query?: Record<string, string>): Promise<T> {
     const cacheKey: CacheKey = { userId: this.userId, path, query };
-    const cached = await getCached<T>(this.env.OURA_CACHE, cacheKey);
+    const cached = await getCached<T>(this.env.OURA_CACHE, this.env.ENCRYPTION_SECRET, cacheKey);
     if (cached !== null) return cached;
 
     await this.ensureFresh();
@@ -118,7 +118,7 @@ export class OuraClient {
 
     const data = (await response.json()) as T;
     const ttlSeconds = selectTTLSeconds(path, query);
-    await setCached(this.env.OURA_CACHE, cacheKey, data, { ttlSeconds });
+    await setCached(this.env.OURA_CACHE, this.env.ENCRYPTION_SECRET, cacheKey, data, { ttlSeconds });
     return data;
   }
 
