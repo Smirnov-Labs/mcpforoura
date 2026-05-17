@@ -16,6 +16,8 @@ import { getCardioAgeSchema, executeGetCardioAge } from "./tools/get-cardio-age.
 import { getVo2MaxSchema, executeGetVo2Max } from "./tools/get-vo2-max.js";
 import { getRecommendedSleepTimeSchema, executeGetRecommendedSleepTime } from "./tools/get-recommended-sleep-time.js";
 import { getRestModePeriodsSchema, executeGetRestModePeriods } from "./tools/get-rest-mode-periods.js";
+import { getMorningBriefingSchema, executeGetMorningBriefing } from "./tools/get-morning-briefing.js";
+import { getWeeklyRecapSchema, executeGetWeeklyRecap } from "./tools/get-weekly-recap.js";
 
 interface ToolError {
   code?: string;
@@ -264,5 +266,29 @@ export function registerOuraTools(server: McpServer, env: Env, props: AuthProps)
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     clientTool(env, props, executeGetRestModePeriods)
+  );
+
+  server.registerTool(
+    "get_morning_briefing",
+    {
+      title: "Morning Briefing",
+      description:
+        "Get a structured 'how am I today' snapshot: today's readiness + recommended sleep time + yesterday's sleep, activity, stress, and tags. Use this when the user opens the day and wants a single overview call. Server returns raw fields — you decide what to highlight. Pass user's LOCAL date as strict YYYY-MM-DD.",
+      inputSchema: getMorningBriefingSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetMorningBriefing)
+  );
+
+  server.registerTool(
+    "get_weekly_recap",
+    {
+      title: "Weekly Recap",
+      description:
+        "Get a 1-28 day window of daily Oura metrics with per-metric mean/min/max. Default 7 days. Use this when the user asks 'how was my week' or wants to scan the past N days at a glance. Pass user's LOCAL end_date as strict YYYY-MM-DD.",
+      inputSchema: getWeeklyRecapSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetWeeklyRecap)
   );
 }
