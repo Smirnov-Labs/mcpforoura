@@ -16,11 +16,9 @@ export function shiftDate(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function resolveDate(value: string, now = new Date()): string {
-  if (value === "today") return today(now);
-  if (value === "yesterday") return shiftDate(today(now), -1);
+export function resolveDate(value: string): string {
   if (!isIsoDate(value)) {
-    throw new Error(`Invalid date: ${value}. Expected YYYY-MM-DD, 'today', or 'yesterday'.`);
+    throw new Error(`Invalid date: ${value}. Expected strict YYYY-MM-DD.`);
   }
   return value;
 }

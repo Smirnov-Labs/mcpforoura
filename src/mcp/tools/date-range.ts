@@ -18,8 +18,18 @@ const RANGE_METRIC = z.enum([
 export type RangeMetric = z.infer<typeof RANGE_METRIC>;
 
 export const dateRangeSchema = {
-  start: z.string().describe("Start date (YYYY-MM-DD)."),
-  end: z.string().describe("End date (YYYY-MM-DD). Max 180 days from start."),
+  start: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .describe(
+      "Start date in strict YYYY-MM-DD using the user's LOCAL date (Oura attributes data to local days)."
+    ),
+  end: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .describe(
+      "End date in strict YYYY-MM-DD (user's local date). Max 180 days from start."
+    ),
   metric: RANGE_METRIC.describe(
     "Which metric to project over the range. sleep_score/total_sleep_hours/efficiency_pct come from daily_sleep + sleep endpoints; readiness_score/hrv/resting_hr come from daily_readiness; activity_score/steps from daily_activity."
   ),

@@ -8,7 +8,10 @@ const SCOPE = z.enum(["sleep", "readiness", "activity"]);
 export const dailySummarySchema = {
   date: z
     .string()
-    .describe("Date (YYYY-MM-DD), or 'today' / 'yesterday'."),
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .describe(
+      "Date in strict YYYY-MM-DD format. Always pass the user's LOCAL date — do not pass 'today' or 'yesterday', resolve those yourself using the user's current local date. Oura attributes data to the user's local day (day of wake-up), so passing a UTC date when the user is in a non-UTC timezone will fetch the wrong day or no data."
+    ),
   scopes: z
     .array(SCOPE)
     .optional()
