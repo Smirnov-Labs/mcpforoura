@@ -3,7 +3,7 @@
   "name": "link.smirnov/mcp-oura",
   "title": "MCP for Oura",
   "description": "Multi-tenant hosted MCP server for Oura Ring — 21 read-only tools, OAuth per user.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repository": {
     "url": "https://github.com/Smirnov-Labs/mcpforoura",
     "source": "github"

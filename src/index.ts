@@ -8,7 +8,7 @@ import app, { renderMcpHelloPage } from "./oauth-app.js";
 export class OuraMCP extends McpAgent<Env, Record<string, never>, AuthProps> {
   server = new McpServer({
     name: "mcpforoura",
-    version: "0.1.0",
+    version: "0.1.1",
   });
 
   async init() {

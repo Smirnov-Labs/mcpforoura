@@ -1,6 +1,6 @@
 {
   "name": "@smirnovlabs/mcpforoura",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Hosted remote MCP server for Oura Ring on Cloudflare Workers with OAuth",
   "author": "Ivan Smirnov <isgsmirnov@gmail.com>",

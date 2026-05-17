@@ -113,6 +113,7 @@ function renderHomePage(request: Request) {
       <h1>Hosted MCP connector for Oura Ring</h1>
       <p>This service connects supported MCP clients to a user's Oura account through OAuth. Read-only.</p>
       <p class="meta"><strong>MCP endpoint:</strong> <code>${escapeHtml(mcpUrl)}</code></p>
+      <p class="meta"><strong>Listed on:</strong> <a href="https://smithery.ai/servers/issmirnov/oura" rel="noopener">Smithery</a> &middot; <a href="https://registry.modelcontextprotocol.io/v0/servers?search=link.smirnov" rel="noopener">MCP Registry</a> &middot; <a href="https://github.com/Smirnov-Labs/mcpforoura" rel="noopener">GitHub</a></p>
       <div class="actions">
         <a class="link-button primary" href="${escapeHtml(INSTALL_GUIDE_URL)}">Setup instructions</a>
         <a class="link-button secondary" href="/privacy">Privacy Policy</a>
@@ -337,7 +338,7 @@ app.get("/.well-known/mcp/server-card.json", (c) =>
   c.json({
     serverInfo: {
       name: "mcpforoura",
-      version: "0.1.0",
+      version: "0.1.1",
       title: "MCP for Oura",
       description:
         "Hosted multi-tenant remote MCP server for Oura Ring — read-only access to sleep, readiness, activity, stress, workouts, tags, and personal-baseline analytics across 21 tools.",
