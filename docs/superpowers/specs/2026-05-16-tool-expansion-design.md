@@ -90,7 +90,7 @@ No prose. No ranking. LLM curates which fields to highlight.
 
 Inputs: `{end_date: "YYYY-MM-DD", days?: number}` — default 7 days, max 28.
 
-Behavior: pulls each daily endpoint over the window and computes per-metric mean/min/max. Returns:
+Behavior: pulls each daily endpoint over the window in parallel and computes per-metric mean/min/max over non-null days. `daily` array is ordered chronologically (oldest first). Returns:
 
 ```json
 {
@@ -113,7 +113,7 @@ Behavior: pulls each daily endpoint over the window and computes per-metric mean
 
 Inputs: `{metric, end_date, lookback_days?: 90, threshold_sigma?: 2}`
 
-Behavior: pulls the metric over the lookback window, computes rolling baseline (excluding the day under test), returns days where `|z-score| > threshold_sigma`.
+Behavior: pulls the metric over the lookback window, computes a single baseline (mean, stdev) from all non-null days in the window, then scores each day's deviation. Returns days where `|z-score| > threshold_sigma`. Sorted by `deviation_sigma` magnitude descending.
 
 ```json
 {
