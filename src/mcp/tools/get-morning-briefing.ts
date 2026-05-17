@@ -90,7 +90,9 @@ async function safeRequestList<T>(
 }
 
 function pickByDay<T extends { day: string }>(docs: T[], day: string): T | undefined {
-  return docs.find((d) => d.day === day) ?? docs[0];
+  // Strict match only — if Oura returns docs for a different day than queried,
+  // we'd rather return undefined and let the caller surface null than substitute.
+  return docs.find((d) => d.day === day);
 }
 
 export async function executeGetMorningBriefing(

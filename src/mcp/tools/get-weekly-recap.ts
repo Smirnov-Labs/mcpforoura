@@ -122,6 +122,9 @@ export async function executeGetWeeklyRecap(
   const stressByDay = indexByDay(stressDocs);
 
   // Pick the longest sleep period per day for total_sleep_hours.
+  // Accepts both "long_sleep" (Gen3+ rings) and "sleep" (older rings) so the
+  // recap doesn't omit total_sleep on legacy data. compare_to_baseline filters
+  // tighter — when that tool is updated to accept both, this comment can go.
   const longestSleepByDay = new Map<string, SleepPeriod>();
   for (const p of sleepPeriods) {
     if (p.type !== "long_sleep" && p.type !== "sleep") continue;
