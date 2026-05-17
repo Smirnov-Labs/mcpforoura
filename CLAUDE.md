@@ -64,7 +64,7 @@ src/
 │                                OuraEndpointGated, OuraRateLimited,
 │                                OuraInsufficientBaseline, OuraInvalidInput
 └── mcp/
-    ├── registerTools.ts         registers all 24 tools on the McpServer
+    ├── registerTools.ts         registers all 21 tools on the McpServer
     └── tools/
         ├── dates.ts                         isIsoDate, resolveDate, shiftDate, daysBetween
         ├── daily-summary.ts                 get_daily_summary
@@ -85,10 +85,7 @@ src/
         ├── get-morning-briefing.ts          get_morning_briefing
         ├── get-weekly-recap.ts              get_weekly_recap
         ├── find-anomalies.ts                find_anomalies
-        ├── correlate-tag-with-metric.ts     correlate_tag_with_metric
-        ├── get-cycle-phase.ts               get_cycle_phase
-        ├── get-cycle-history.ts             get_cycle_history
-        └── compare-metric-across-cycle-phases.ts  compare_metric_across_cycle_phases
+        └── correlate-tag-with-metric.ts     correlate_tag_with_metric
 ```
 
 ## Adding a new tool
@@ -170,7 +167,7 @@ For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Our
 
 ## Tool inventory
 
-24 tools registered in `src/mcp/registerTools.ts`:
+21 tools registered in `src/mcp/registerTools.ts`:
 
 **Diagnostics (2)**
 - `ping` — auth + connectivity check, no Oura call
@@ -205,23 +202,21 @@ For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Our
 - `find_anomalies` — flag days deviating >N σ from rolling mean
 - `correlate_tag_with_metric` — metric stats on tagged vs. untagged days
 
-**Phase 5 — Cycle analytics (3)**
-- `get_cycle_phase` — current menstrual cycle phase + day-of-cycle for a date
-- `get_cycle_history` — most recent N cycles with length + regularity summary
-- `compare_metric_across_cycle_phases` — metric bucketed by cycle phase across lookback window
+**Phase 5 — Removed.** `get_cycle_phase`, `get_cycle_history`, and `compare_metric_across_cycle_phases` were built against `/usercollection/cycle_insights` but Oura's public v2 API does NOT expose menstrual cycle endpoints. The Cycle Insights feature lives in the Oura app only. The tools were removed after a beta user reported failures. Period/cycle data may still be tagged manually via `get_tags` and surfaced through `correlate_tag_with_metric`.
 
 ## Status
 
 All milestones complete:
 - ✅ Scaffold, OAuth provider, Hono consent, Oura OAuth flow B, encrypted tokens, OuraClient with refresh/disambig/backoff
 - ✅ KV response cache with date-aware TTLs (M7)
-- ✅ 24 tools live (M6 core 3 + Phase 1–5 additional 19 + 2 diagnostics)
-- ✅ Vitest unit tests: 74 tests across 12 files (M9)
+- ✅ 21 tools live (M6 core 3 + Phase 1–4 additional 16 + 2 diagnostics)
+- ✅ Vitest unit tests: 69 tests across 11 files (M9)
 - ✅ Off-by-one fixes: `span >= MAX_DAYS` in workouts, sessions, tags, rest_mode_periods
+- ❌ Phase 5 cycle tools removed (Oura v2 API has no public cycle endpoints)
 
 ## Known limits
 
-- **Cycle tools may 404.** `get_cycle_phase`, `get_cycle_history`, and `compare_metric_across_cycle_phases` depend on the Oura `cycle` endpoint. If not enabled for an account (requires opt-in in the Oura app), they return a graceful `available: false` response.
+- **Oura v2 API has no menstrual-cycle endpoints.** Cycle Insights is app-only. If Oura ever exposes a public cycle API, restore Phase 5 from git history (`feat/phase-5-cycle` branch).
 - **VO2 max is sparse.** Oura only computes VO2 max from outdoor runs/walks with GPS. Measurements may be absent for weeks.
 - **Cache-hit-skips-network integration test** deferred. The 17-test cache suite + OuraClient unit tests cover the behavior transitively. A dedicated `test/oura-client-cache.worker.test.ts` can be added later if this becomes a regression source.
 
