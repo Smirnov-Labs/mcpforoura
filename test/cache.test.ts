@@ -1,8 +1,12 @@
 // test/cache.test.ts
 import { describe, expect, it } from "vitest";
-import { __test, selectTTLSeconds, getCached, setCached, type CacheKey } from "../src/storage/cache";
+import { __test, selectTTLSeconds, getCached, setCached, deleteAllCacheForUser, type CacheKey } from "../src/storage/cache";
+import { decrypt, deriveKey } from "../src/crypto";
 
 const { canonicalJson, paramsHash, buildKey } = __test;
+
+// A 32-byte base64-encoded test secret (all 'E' bytes + padding).
+const SECRET = "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEA=";
 
 function fakeKV(): KVNamespace {
   const store = new Map<string, { value: string; expiresAt?: number }>();
@@ -24,6 +28,12 @@ function fakeKV(): KVNamespace {
     },
     async delete(key: string) {
       store.delete(key);
+    },
+    async list({ prefix, cursor: _cursor }: { prefix?: string; cursor?: string } = {}) {
+      const keys = Array.from(store.keys())
+        .filter((k) => !prefix || k.startsWith(prefix))
+        .map((name) => ({ name }));
+      return { keys, list_complete: true, cursor: undefined };
     },
   } as unknown as KVNamespace;
 }
@@ -124,14 +134,14 @@ describe("getCached / setCached roundtrip", () => {
   it("stores and retrieves a typed value", async () => {
     const kv = fakeKV();
     const key: CacheKey = { userId: "u1", path: "/x", query: { a: "1" } };
-    await setCached(kv, key, { score: 86 }, { ttlSeconds: 3600 });
-    const got = await getCached<{ score: number }>(kv, key);
+    await setCached(kv, SECRET, key, { score: 86 }, { ttlSeconds: 3600 });
+    const got = await getCached<{ score: number }>(kv, SECRET, key);
     expect(got).toEqual({ score: 86 });
   });
 
   it("returns null on miss", async () => {
     const kv = fakeKV();
-    const got = await getCached(kv, { userId: "u1", path: "/x" });
+    const got = await getCached(kv, SECRET, { userId: "u1", path: "/x" });
     expect(got).toBeNull();
   });
 
@@ -143,7 +153,7 @@ describe("getCached / setCached roundtrip", () => {
       `cache:u1:x:${await paramsHash(undefined)}`,
       "not json"
     );
-    const got = await getCached(kv, key);
+    const got = await getCached(kv, SECRET, key);
     expect(got).toBeNull();
   });
 
@@ -152,7 +162,7 @@ describe("getCached / setCached roundtrip", () => {
     const key: CacheKey = { userId: "u1", path: "/x" };
     const builtKey = `cache:u1:x:${await paramsHash(undefined)}`;
     await (kv as unknown as { put: KVNamespace["put"] }).put(builtKey, "not json");
-    await getCached(kv, key);
+    await getCached(kv, SECRET, key);
     // After a parse-fail read, the corrupt entry should be deleted.
     const afterPurge = await kv.get(builtKey);
     expect(afterPurge).toBeNull();
@@ -172,6 +182,52 @@ describe("getCached / setCached roundtrip", () => {
     } as unknown as KVNamespace;
     const key: CacheKey = { userId: "u1", path: "/x" };
     // Should not throw despite kv.put failing.
-    await expect(setCached(failingKv, key, { ok: true }, { ttlSeconds: 60 })).resolves.toBeUndefined();
+    await expect(setCached(failingKv, SECRET, key, { ok: true }, { ttlSeconds: 60 })).resolves.toBeUndefined();
+  });
+});
+
+describe("cache encryption + isolation", () => {
+  it("stored value is ciphertext, not plaintext", async () => {
+    const kv = fakeKV();
+    const key: CacheKey = { userId: "u1", path: "/x" };
+    await setCached(kv, SECRET, key, { score: 86 }, { ttlSeconds: 3600 });
+    const raw = await kv.get(`cache:u1:x:${await paramsHash(undefined)}`);
+    expect(raw).toBeTruthy();
+    expect(raw).not.toContain("86");
+    expect(raw).not.toContain("score");
+  });
+
+  it("evicts plaintext legacy entries instead of returning them", async () => {
+    const kv = fakeKV();
+    const key: CacheKey = { userId: "u1", path: "/x" };
+    const builtKey = `cache:u1:x:${await paramsHash(undefined)}`;
+    await (kv as unknown as { put: KVNamespace["put"] }).put(builtKey, JSON.stringify({ score: 99 }));
+    const got = await getCached(kv, SECRET, key);
+    expect(got).toBeNull();
+    expect(await kv.get(builtKey)).toBeNull(); // evicted
+  });
+
+  it("scopes by user — u1 cannot read u2's entry", async () => {
+    const kv = fakeKV();
+    await setCached(kv, SECRET, { userId: "u1", path: "/x" }, { v: 1 }, { ttlSeconds: 3600 });
+    // u2 trying to read at u1's key path returns null (different cache key).
+    const got = await getCached(kv, SECRET, { userId: "u2", path: "/x" });
+    expect(got).toBeNull();
+  });
+});
+
+describe("deleteAllCacheForUser", () => {
+  it("removes only the target user's keys", async () => {
+    const kv = fakeKV();
+    await setCached(kv, SECRET, { userId: "u1", path: "/a" }, { v: 1 }, { ttlSeconds: 3600 });
+    await setCached(kv, SECRET, { userId: "u1", path: "/b" }, { v: 2 }, { ttlSeconds: 3600 });
+    await setCached(kv, SECRET, { userId: "u2", path: "/a" }, { v: 3 }, { ttlSeconds: 3600 });
+
+    const deleted = await deleteAllCacheForUser(kv, "u1");
+    expect(deleted).toBe(2);
+
+    expect(await getCached(kv, SECRET, { userId: "u1", path: "/a" })).toBeNull();
+    expect(await getCached(kv, SECRET, { userId: "u1", path: "/b" })).toBeNull();
+    expect(await getCached(kv, SECRET, { userId: "u2", path: "/a" })).toEqual({ v: 3 });
   });
 });
