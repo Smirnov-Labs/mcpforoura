@@ -4,11 +4,11 @@ Hosted remote MCP server for [Oura Ring](https://ouraring.com), live at **https:
 
 This is a small-scale connector (3-user cap). Not affiliated with Oura Health Oy.
 
-**Status:** deployed and serving. 24 tools live across 5 implementation phases on top of the original M1-M8. KV cache live (M7). Phase 1–5 v2 tool expansion complete (Tier A wrappers, composites, analytics, and cycle analytics).
+**Status:** deployed and serving. 21 tools live across 4 implementation phases on top of the original M1-M8. KV cache live (M7). Phase 1–4 v2 tool expansion complete (Tier A wrappers, composites, analytics). Phase 5 cycle tools removed pending Oura API support.
 
 ## What you can ask
 
-24 tools live across 5 phases:
+21 tools live across 4 phases (Phase 5 cycle tools removed — see "Not available" below):
 
 **Core (M6 originals)**
 
@@ -56,13 +56,9 @@ This is a small-scale connector (3-user cap). Not affiliated with Oura Health Oy
 | `find_anomalies` | Flag days whose metric deviates >N σ from the rolling-window mean. |
 | `correlate_tag_with_metric` | "Does alcohol hurt my HRV?" Compare metric stats on tagged vs. untagged days. |
 
-**Phase 5 — Cycle analytics**
+## Not available
 
-| Tool | When to use |
-|---|---|
-| `get_cycle_phase` | Current menstrual cycle phase (menstrual/follicular/ovulatory/luteal) for a date. |
-| `get_cycle_history` | Most recent N cycles with start date, length, and regularity summary. |
-| `compare_metric_across_cycle_phases` | Mean/median/stdev of a metric bucketed by cycle phase across a lookback window. |
+Cycle analytics (`get_cycle_phase`, `get_cycle_history`, `compare_metric_across_cycle_phases`) were initially planned for Phase 5 but **Oura's public v2 API does not expose menstrual cycle endpoints** — the Cycle Insights feature lives in the Oura app only. The tools were removed after a beta user hit 404s; see git history (`feat/phase-5-cycle` and `feat/remove-cycle-tools` branches) for the reasoning trail. Tag-based logging via `get_tags` can serve as a partial workaround if users tag period start days manually.
 
 ## Adding the connector in Claude
 
@@ -153,7 +149,8 @@ Deployed at `https://mcp-oura.smirnov.link` on the Smirnov Labs Cloudflare accou
 | D3 — Push to `Smirnov-Labs/mcpforoura` on GitHub | ✅ |
 | M7 — KV response cache with date-aware TTLs | ✅ |
 | M8 — Tools 4–8 (workouts, sessions, HR series, tags, baseline) | ✅ |
-| Phase 1–5 — 19 additional tools (Tier A, composites, analytics, cycle) | ✅ |
+| Phase 1–4 — 16 additional tools (Tier A, composites, analytics) | ✅ |
+| Phase 5 — cycle tools (removed; Oura v2 API has no public cycle endpoints) | ❌ |
 | M9 — Vitest tests + deploy-docs polish | ✅ |
 
 ## License

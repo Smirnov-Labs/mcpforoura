@@ -132,7 +132,7 @@ function renderPrivacyPage() {
       <h2>Overview</h2>
       <p>This service is a hosted Model Context Protocol (MCP) server for Oura Ring. It lets a user connect their Oura account to supported MCP clients (such as Claude) through OAuth.</p>
       <h2>Data We Access</h2>
-      <p>When you authorize this service with Oura, we access only the data your granted OAuth scopes permit, which can include daily readiness, sleep, activity, stress, heart-rate series, workouts, mindfulness sessions, user-entered tags, SpO2, ring/personal metadata, and menstrual-cycle insights (phase, history, and length data).</p>
+      <p>When you authorize this service with Oura, we access only the data your granted OAuth scopes permit, which can include daily readiness, sleep, activity, stress, heart-rate series, workouts, mindfulness sessions, user-entered tags, SpO2, and ring/personal metadata.</p>
       <h2>How We Use Data</h2>
       <p>We use your Oura data exclusively to fulfil MCP tool requests you initiate through your connected client. We refresh OAuth access tokens when needed using your Oura refresh token, and operate and secure the hosted MCP service. We do not sell or share your Oura data with third parties.</p>
       <h2>Data Storage</h2>
