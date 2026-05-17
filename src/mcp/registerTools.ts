@@ -18,6 +18,8 @@ import { getRecommendedSleepTimeSchema, executeGetRecommendedSleepTime } from ".
 import { getRestModePeriodsSchema, executeGetRestModePeriods } from "./tools/get-rest-mode-periods.js";
 import { getMorningBriefingSchema, executeGetMorningBriefing } from "./tools/get-morning-briefing.js";
 import { getWeeklyRecapSchema, executeGetWeeklyRecap } from "./tools/get-weekly-recap.js";
+import { findAnomaliesSchema, executeFindAnomalies } from "./tools/find-anomalies.js";
+import { correlateTagWithMetricSchema, executeCorrelateTagWithMetric } from "./tools/correlate-tag-with-metric.js";
 
 interface ToolError {
   code?: string;
@@ -290,5 +292,29 @@ export function registerOuraTools(server: McpServer, env: Env, props: AuthProps)
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     clientTool(env, props, executeGetWeeklyRecap)
+  );
+
+  server.registerTool(
+    "find_anomalies",
+    {
+      title: "Find Anomalies",
+      description:
+        "Flag days whose metric value deviates more than threshold_sigma standard deviations from the rolling-window mean. Default window 90 days, default threshold 2σ. Use when the user asks 'when did my HRV crash?' or 'pick out my worst sleep weeks'. Returns empty list (and insufficient_baseline=true) if fewer than 14 non-null days. Pass user's LOCAL end_date as strict YYYY-MM-DD.",
+      inputSchema: findAnomaliesSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeFindAnomalies)
+  );
+
+  server.registerTool(
+    "correlate_tag_with_metric",
+    {
+      title: "Correlate Tag with Metric",
+      description:
+        "Compute mean/median/stdev of a metric on tagged days vs untagged days, plus mean_delta_pct. Use when the user asks 'does alcohol hurt my sleep?' or 'are tagged days worse for HRV?'. Provide exactly one of tag_type_code (Oura's tag taxonomy) or custom_name (user-defined). small_sample_warning=true when either group has <5 days. Pass user's LOCAL end_date as strict YYYY-MM-DD.",
+      inputSchema: correlateTagWithMetricSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeCorrelateTagWithMetric)
   );
 }
