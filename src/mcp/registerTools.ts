@@ -4,6 +4,11 @@ import { OuraClient } from "../oura/client.js";
 import { dailySummarySchema, executeDailySummary } from "./tools/daily-summary.js";
 import { dateRangeSchema, executeDateRange } from "./tools/date-range.js";
 import { executeLastNightSleep, lastNightSleepSchema } from "./tools/last-night-sleep.js";
+import { compareToBaselineSchema, executeCompareToBaseline } from "./tools/compare-to-baseline.js";
+import { getHeartRateSeriesSchema, executeGetHeartRateSeries } from "./tools/get-heart-rate-series.js";
+import { getSessionsSchema, executeGetSessions } from "./tools/get-sessions.js";
+import { getTagsSchema, executeGetTags } from "./tools/get-tags.js";
+import { getWorkoutsSchema, executeGetWorkouts } from "./tools/get-workouts.js";
 
 interface ToolError {
   code?: string;
@@ -108,5 +113,65 @@ export function registerOuraTools(server: McpServer, env: Env, props: AuthProps)
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     clientTool(env, props, executeLastNightSleep)
+  );
+
+  server.registerTool(
+    "get_workouts",
+    {
+      title: "Workouts",
+      description:
+        "List workouts logged or auto-detected over a date range. Use for exercise/training questions or to correlate workouts with recovery. Pass user's LOCAL dates as strict YYYY-MM-DD.",
+      inputSchema: getWorkoutsSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetWorkouts)
+  );
+
+  server.registerTool(
+    "get_sessions",
+    {
+      title: "Mindfulness Sessions",
+      description:
+        "List mindfulness sessions (meditation, breathing, relaxation) over a date range. Pass user's LOCAL dates as strict YYYY-MM-DD.",
+      inputSchema: getSessionsSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetSessions)
+  );
+
+  server.registerTool(
+    "get_tags",
+    {
+      title: "Enhanced Tags",
+      description:
+        "List user-annotated tags (caffeine, alcohol, late meal, custom notes) over a date range. Use to correlate behaviors with sleep/readiness or to recall what was logged. Pass user's LOCAL dates as strict YYYY-MM-DD.",
+      inputSchema: getTagsSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetTags)
+  );
+
+  server.registerTool(
+    "get_heart_rate_series",
+    {
+      title: "Heart Rate Series",
+      description:
+        "Get intraday heart-rate time series within a 24-hour window, bucketed to 5min/15min/raw. Use for HR patterns within a day (sleep, workout, stress events). For multi-day trends, use get_date_range with metric=resting_hr instead.",
+      inputSchema: getHeartRateSeriesSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeGetHeartRateSeries)
+  );
+
+  server.registerTool(
+    "compare_to_baseline",
+    {
+      title: "Compare to Baseline",
+      description:
+        "Compare a single day's metric to the user's personal 30-day and 90-day rolling baselines. Use when the user asks 'is this normal for me?' or 'how does today compare to my usual?'. Returns value alongside personal context so answers can be 'good for you' rather than absolute.",
+      inputSchema: compareToBaselineSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    clientTool(env, props, executeCompareToBaseline)
   );
 }
