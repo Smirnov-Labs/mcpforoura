@@ -26,11 +26,14 @@ export interface OuraListResponse<T> {
 export class OuraClient {
   private token: StoredOuraToken | null = null;
   private justRefreshed = false;
+  // In-flight refresh. Concurrent ensureFresh()/refresh() callers all await the
+  // same promise so we never burn Oura's single-use refresh token twice.
+  private pendingRefresh: Promise<StoredOuraToken> | null = null;
 
   constructor(private readonly env: Env, private readonly userId: string) {}
 
-  private async loadToken(): Promise<StoredOuraToken> {
-    if (this.token) return this.token;
+  private async loadToken(forceReload = false): Promise<StoredOuraToken> {
+    if (this.token && !forceReload) return this.token;
     const stored = await loadStoredToken(this.env.OURA_TOKENS, this.env.ENCRYPTION_SECRET, this.userId);
     if (!stored) {
       throw new OuraReauthRequired();
@@ -48,11 +51,33 @@ export class OuraClient {
   }
 
   private async refresh(): Promise<StoredOuraToken> {
+    // In-process coalescing: if any caller in this isolate is already
+    // refreshing, all subsequent callers wait on the same promise.
+    if (this.pendingRefresh) return this.pendingRefresh;
+    this.pendingRefresh = this.doRefresh().finally(() => {
+      this.pendingRefresh = null;
+    });
+    return this.pendingRefresh;
+  }
+
+  private async doRefresh(): Promise<StoredOuraToken> {
     const current = await this.loadToken();
     let refreshed;
     try {
       refreshed = await refreshAccessToken(this.env, current.refreshToken);
     } catch (error) {
+      // Cross-process race: a different Worker invocation may have already
+      // refreshed and consumed our single-use refresh token. Reload from KV;
+      // if the stored token is newer, use it instead of forcing a reauth.
+      try {
+        const newer = await this.loadToken(true);
+        if (newer.refreshToken !== current.refreshToken) {
+          this.justRefreshed = true;
+          return newer;
+        }
+      } catch {
+        // Stored token was deleted between attempts — fall through to reauth.
+      }
       throw new OuraReauthRequired();
     }
     const updated: StoredOuraToken = {
