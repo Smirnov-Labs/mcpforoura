@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { OuraClient } from "../../oura/client.js";
 import type { HeartRateSample } from "../../oura/types.js";
 import { OuraInvalidInput } from "../../errors.js";
-import { mean, nonNull, round } from "./stats.js";
+import { mean, nonNull } from "./stats.js";
 
 const RESOLUTION = z.enum(["raw", "5min", "15min"]);
 export type HrResolution = z.infer<typeof RESOLUTION>;
@@ -89,7 +89,5 @@ export async function executeGetHeartRateSeries(
 
   const resolution: HrResolution = input.resolution ?? "5min";
   const points = bucketHeartRate(samples, BUCKET_MS[resolution]);
-  // round() is unused once we bucket, but we apply Math.round in bucketing.
-  void round;
   return { points };
 }

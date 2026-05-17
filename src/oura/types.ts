@@ -88,6 +88,8 @@ export interface OuraSession {
   start_datetime: string;
   end_datetime: string;
   mood?: string | null;
+  mood_before?: string | null;
+  mood_after?: string | null;
   [key: string]: unknown;
 }
 
