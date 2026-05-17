@@ -171,3 +171,19 @@ export interface RestModePeriod {
   episode_type?: string | null;
   [key: string]: unknown;
 }
+
+export interface CyclePhaseInfo {
+  phase: "menstrual" | "follicular" | "ovulatory" | "luteal" | "unknown";
+  start_day: string;
+  end_day?: string | null;
+}
+
+export interface CycleInsight {
+  id: string;
+  start_day: string;
+  end_day?: string | null;
+  length_days?: number | null;
+  predicted_length_days?: number | null;
+  phases?: CyclePhaseInfo[] | null;
+  [key: string]: unknown;
+}
