@@ -1,4 +1,8 @@
-const HKDF_INFO = new TextEncoder().encode("oura-token-encryption-v1");
+// HKDF info strings provide domain separation: the same secret+salt produces
+// distinct keys for distinct purposes. Add new constants here when you need a
+// new key domain rather than reusing an existing one.
+const TOKEN_HKDF_INFO = "oura-token-encryption-v1";
+export const CACHE_HKDF_INFO = "oura-cache-encryption-v1";
 
 function base64Decode(value: string) {
   const binary = atob(value);
@@ -17,7 +21,11 @@ function base64Encode(bytes: Uint8Array) {
   return btoa(binary);
 }
 
-export async function deriveKey(userId: string, secretB64: string): Promise<CryptoKey> {
+export async function deriveKey(
+  userId: string,
+  secretB64: string,
+  info: string = TOKEN_HKDF_INFO
+): Promise<CryptoKey> {
   const secretBytes = base64Decode(secretB64);
   const baseKey = await crypto.subtle.importKey(
     "raw",
@@ -31,7 +39,7 @@ export async function deriveKey(userId: string, secretB64: string): Promise<Cryp
       name: "HKDF",
       hash: "SHA-256",
       salt: new TextEncoder().encode(userId),
-      info: HKDF_INFO,
+      info: new TextEncoder().encode(info),
     },
     baseKey,
     { name: "AES-GCM", length: 256 },

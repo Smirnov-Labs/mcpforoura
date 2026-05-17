@@ -1,6 +1,6 @@
 // src/storage/cache.ts
 
-import { decrypt, deriveKey, encrypt, sha256HexTruncated } from "../crypto.js";
+import { CACHE_HKDF_INFO, decrypt, deriveKey, encrypt, sha256HexTruncated } from "../crypto.js";
 
 export interface CacheKey {
   userId: string;
@@ -65,7 +65,7 @@ export async function getCached<T>(
   const raw = await kv.get(k);
   if (!raw) return null;
   try {
-    const cryptoKey = await deriveKey(key.userId, encryptionSecret);
+    const cryptoKey = await deriveKey(key.userId, encryptionSecret, CACHE_HKDF_INFO);
     const plaintext = await decrypt(raw, cryptoKey);
     return JSON.parse(plaintext) as T;
   } catch {
@@ -89,7 +89,7 @@ export async function setCached<T>(
 ): Promise<void> {
   const k = await buildKey(key);
   try {
-    const cryptoKey = await deriveKey(key.userId, encryptionSecret);
+    const cryptoKey = await deriveKey(key.userId, encryptionSecret, CACHE_HKDF_INFO);
     const ciphertext = await encrypt(JSON.stringify(value), cryptoKey);
     await kv.put(k, ciphertext, { expirationTtl: opts.ttlSeconds });
   } catch {
