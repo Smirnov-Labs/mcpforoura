@@ -23,15 +23,21 @@ export interface DayValue {
   value: number | null;
 }
 
-const READINESS_METRICS = new Set<Metric>(["readiness_score", "hrv", "resting_hr"]);
+const READINESS_METRICS = new Set<Metric>(["readiness_score"]);
 const SLEEP_DAILY_METRICS = new Set<Metric>(["sleep_score"]);
-const SLEEP_PERIOD_METRICS = new Set<Metric>(["total_sleep_hours", "efficiency_pct"]);
+// hrv (ms) and resting_hr (bpm) come from the per-night SleepPeriod document.
+// daily_readiness exposes only normalized 0-100 *contributor scores* with the
+// same names, which is not what users mean when they say "my HRV".
+const SLEEP_PERIOD_METRICS = new Set<Metric>([
+  "total_sleep_hours",
+  "efficiency_pct",
+  "hrv",
+  "resting_hr",
+]);
 const ACTIVITY_METRICS = new Set<Metric>(["activity_score", "steps"]);
 
 function pickReadiness(metric: Metric, doc: DailyReadiness): number | null {
   if (metric === "readiness_score") return doc.score ?? null;
-  if (metric === "hrv") return doc.contributors?.hrv_balance ?? null;
-  if (metric === "resting_hr") return doc.contributors?.resting_heart_rate ?? null;
   return null;
 }
 
@@ -39,6 +45,25 @@ function pickActivity(metric: Metric, doc: DailyActivity): number | null {
   if (metric === "activity_score") return doc.score ?? null;
   if (metric === "steps") return doc.steps ?? null;
   return null;
+}
+
+function pickSleepPeriod(metric: Metric, p: SleepPeriod): number | null {
+  switch (metric) {
+    case "total_sleep_hours":
+      return p.total_sleep_duration != null ? round(p.total_sleep_duration / 3600, 2) : null;
+    case "efficiency_pct":
+      return p.efficiency != null ? round(p.efficiency, 2) : null;
+    case "hrv":
+      // average_hrv is the per-night HRV average in milliseconds.
+      return p.average_hrv ?? null;
+    case "resting_hr":
+      // lowest_heart_rate is the closest proxy to resting HR Oura exposes on
+      // a per-night basis (resting state during sleep). average_heart_rate
+      // would over-report due to REM/wake periods.
+      return p.lowest_heart_rate ?? null;
+    default:
+      return null;
+  }
 }
 
 export async function fetchMetricPoints(
@@ -76,14 +101,7 @@ export async function fetchMetricPoints(
     }
     return [...byDay.values()].map((p) => ({
       date: p.day,
-      value:
-        metric === "total_sleep_hours"
-          ? p.total_sleep_duration != null
-            ? round(p.total_sleep_duration / 3600, 2)
-            : null
-          : p.efficiency != null
-            ? round(p.efficiency, 2)
-            : null,
+      value: pickSleepPeriod(metric, p),
     }));
   }
   if (ACTIVITY_METRICS.has(metric)) {

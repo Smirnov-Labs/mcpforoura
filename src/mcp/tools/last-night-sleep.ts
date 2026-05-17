@@ -1,5 +1,5 @@
 import type { OuraClient } from "../../oura/client.js";
-import type { SleepPeriod } from "../../oura/types.js";
+import type { DailySleep, SleepPeriod } from "../../oura/types.js";
 import { shiftDate, today } from "./dates.js";
 
 export const lastNightSleepSchema = {};
@@ -33,10 +33,16 @@ export async function executeLastNightSleep(
   const end = today();
   const start = shiftDate(end, -2);
 
-  const periods = await client.collectAll<SleepPeriod>("/usercollection/sleep", {
-    start_date: start,
-    end_date: end,
-  });
+  const [periods, dailySleepDocs] = await Promise.all([
+    client.collectAll<SleepPeriod>("/usercollection/sleep", {
+      start_date: start,
+      end_date: end,
+    }),
+    client.collectAll<DailySleep>("/usercollection/daily_sleep", {
+      start_date: start,
+      end_date: end,
+    }),
+  ]);
 
   const longSleeps = periods.filter(
     (p) => (p.type === "long_sleep" || p.type === "sleep") && p.total_sleep_duration != null
@@ -49,10 +55,15 @@ export async function executeLastNightSleep(
   longSleeps.sort((a, b) => (a.bedtime_end < b.bedtime_end ? 1 : -1));
   const best = longSleeps[0];
 
+  // Sleep score lives on the daily_sleep document for that day — not on the
+  // sleep-period's `readiness` field (which is a sub-object with its own score
+  // that's actually a readiness signal, not a sleep score).
+  const sleepScore = dailySleepDocs.find((d) => d.day === best.day)?.score ?? null;
+
   return {
     available: true,
     date: best.day,
-    score: best.readiness?.score ?? null,
+    score: sleepScore,
     total_sleep_hours: secToHours(best.total_sleep_duration),
     deep_hours: secToHours(best.deep_sleep_duration),
     rem_hours: secToHours(best.rem_sleep_duration),
