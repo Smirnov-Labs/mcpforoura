@@ -225,6 +225,39 @@ app.get("/", (c) => c.html(renderHomePage(c.req.raw)));
 app.get("/privacy", (c) => c.html(renderPrivacyPage()));
 app.get("/tos", (c) => c.html(renderTosPage()));
 
+// Glama discovery — https://glama.ai picks up MCP servers via this well-known file.
+app.get("/.well-known/glama.json", (c) =>
+  c.json({
+    $schema: "https://glama.ai/mcp/schemas/connector.json",
+    maintainers: [{ email: "ivan@smirnovlabs.com" }],
+  })
+);
+
+// Smithery fallback — used only if Smithery's auto-scanner can't reach the tool list
+// through OAuth. OAuth discovery itself is already handled by workers-oauth-provider
+// at /.well-known/oauth-authorization-server and /.well-known/oauth-protected-resource.
+app.get("/.well-known/mcp/server-card.json", (c) =>
+  c.json({
+    serverInfo: {
+      name: "mcpforoura",
+      version: "0.1.0",
+      title: "MCP for Oura",
+      description:
+        "Hosted multi-tenant remote MCP server for Oura Ring — read-only access to sleep, readiness, activity, stress, workouts, tags, and personal-baseline analytics across 21 tools.",
+      website: "https://mcp-oura.smirnov.link/",
+      privacyPolicy: "https://mcp-oura.smirnov.link/privacy",
+      termsOfService: "https://mcp-oura.smirnov.link/tos",
+      contact: "ivan@smirnovlabs.com",
+      repository: "https://github.com/Smirnov-Labs/mcpforoura",
+    },
+    transport: "streamable-http",
+    authentication: {
+      type: "oauth2",
+      authorizationServer: "https://mcp-oura.smirnov.link",
+    },
+  })
+);
+
 app.get("/authorize", async (c) => {
   const oauthReqInfo = await c.env.OAUTH_PROVIDER.parseAuthRequest(c.req.raw);
   const clientInfo = await c.env.OAUTH_PROVIDER.lookupClient(oauthReqInfo.clientId);

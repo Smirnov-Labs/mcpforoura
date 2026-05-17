@@ -2,7 +2,7 @@
 
 Hosted remote MCP server for [Oura Ring](https://ouraring.com), live at **https://mcp-oura.smirnov.link/mcp**. Multi-tenant OAuth: each user authenticates to their own Oura account. Read-only. Built on Cloudflare Workers.
 
-This is a small-scale connector (3-user cap). Not affiliated with Oura Health Oy.
+Small-scale connector — currently in Oura's development-mode 10-user cap; production application is pending. Not affiliated with Oura Health Oy.
 
 **Status:** deployed and serving. 21 tools live across 4 implementation phases on top of the original M1-M8. KV cache live (M7). Phase 1–4 v2 tool expansion complete (Tier A wrappers, composites, analytics). Phase 5 cycle tools removed pending Oura API support.
 
@@ -66,7 +66,7 @@ Cycle analytics (`get_cycle_phase`, `get_cycle_history`, `compare_metric_across_
 2. URL: `https://mcp-oura.smirnov.link/mcp`.
 3. Approve on this server's consent page → redirected to Oura → consent there → returned to Claude.
 
-The connector caps at 3 authorized users (matches the Oura developer app's development-mode limit).
+The connector currently caps at 10 authorized users (Oura's default development-mode limit). To lift the cap, the Oura developer application must be approved for production by Oura.
 
 ## Architecture
 
@@ -106,11 +106,35 @@ One-time:
    echo -n "$CLIENT_ID"     | npx wrangler secret put OURA_CLIENT_ID
    echo -n "$CLIENT_SECRET" | npx wrangler secret put OURA_CLIENT_SECRET
    openssl rand -base64 32  | tr -d '\n' | npx wrangler secret put ENCRYPTION_SECRET
-   openssl rand -base64 32  | tr -d '\n' | npx wrangler secret put OAUTH_PROVIDER_ENCRYPTION_KEY
    ```
    Keep a copy of `ENCRYPTION_SECRET` somewhere safe — if it's lost, stored tokens cannot be decrypted and all users have to re-authorize.
 
 5. **Custom domain** — if the apex zone is in the same Cloudflare account, the `routes` block in `wrangler.jsonc` (with `custom_domain: true`) attaches the subdomain automatically on next deploy. Otherwise, configure it manually in the Cloudflare dashboard.
+
+## Discoverability
+
+The server publishes the following metadata for MCP registry aggregators:
+
+| Path | Purpose |
+|---|---|
+| `/.well-known/oauth-authorization-server` | OAuth2 authorization-server metadata (served by `@cloudflare/workers-oauth-provider`). |
+| `/.well-known/oauth-protected-resource` | OAuth2 protected-resource metadata (served by `@cloudflare/workers-oauth-provider`). |
+| `/.well-known/glama.json` | Glama directory discovery — `https://glama.ai/mcp`. |
+| `/.well-known/mcp/server-card.json` | Smithery scan fallback (only used when their auto-scanner can't pull the tool list through OAuth). |
+| `server.json` (repo root) | Official MCP Registry submission file — namespace `link.smirnov/mcp-oura`, DNS-verified against `smirnov.link`. Published with `mcp-publisher`. |
+
+Submitting the server to the official MCP Registry (which PulseMCP, mcp.so, and other aggregators consume from):
+
+```bash
+# One-time, from this repo root
+go install github.com/modelcontextprotocol/registry/cmd/mcp-publisher@latest
+mcp-publisher login dns smirnov.link   # prints a TXT record to add in Cloudflare DNS
+mcp-publisher publish                  # uses server.json in the repo root
+```
+
+Submitting to Smithery: paste `https://mcp-oura.smirnov.link/mcp` at `smithery.ai/new` and walk through OAuth during their scan.
+
+Submitting to Glama: use "Add Server" on `glama.ai/mcp/servers` (they pick up maintainer info from `/.well-known/glama.json` automatically).
 
 ## Development
 
@@ -132,7 +156,7 @@ Local development hits the same Oura redirect URI as production, so it's usually
 
 ## Status
 
-Deployed at `https://mcp-oura.smirnov.link` on the Smirnov Labs Cloudflare account. Custom domain mapped via the `routes` block in `wrangler.jsonc`. Three KV namespaces provisioned (`mcpforoura-OAUTH_KV`, `OURA_TOKENS`, `OURA_CACHE`). Four secrets set (`OURA_CLIENT_ID`, `OURA_CLIENT_SECRET`, `ENCRYPTION_SECRET`, `OAUTH_PROVIDER_ENCRYPTION_KEY`).
+Deployed at `https://mcp-oura.smirnov.link` on the Smirnov Labs Cloudflare account. Custom domain mapped via the `routes` block in `wrangler.jsonc`. Three KV namespaces provisioned (`mcpforoura-OAUTH_KV`, `OURA_TOKENS`, `OURA_CACHE`). Three secrets set (`OURA_CLIENT_ID`, `OURA_CLIENT_SECRET`, `ENCRYPTION_SECRET`).
 
 ### Build progress
 
