@@ -352,6 +352,17 @@ app.get("/.well-known/mcp/server-card.json", (c) =>
       type: "oauth2",
       authorizationServer: "https://mcp-oura.smirnov.link",
     },
+    // Empty configSchema declared explicitly so Smithery (and other aggregators)
+    // don't warn that we forgot to publish one. There is no user-provided
+    // configuration: this server is OAuth-protected and per-user state is
+    // negotiated through the OAuth flow, not through API keys or env vars.
+    configSchema: {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+      description: "No user-provided configuration required. Authentication is handled via OAuth (see authentication.authorizationServer).",
+    },
   })
 );
 
