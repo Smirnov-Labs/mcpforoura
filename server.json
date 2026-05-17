@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "link.smirnov/mcp-oura",
   "title": "MCP for Oura",
-  "description": "Hosted multi-tenant remote MCP server for Oura Ring on Cloudflare Workers. Read-only access to sleep, readiness, activity, stress, workouts, tags, and personal-baseline analytics across 21 tools. OAuth per user; AES-GCM token storage; transparent KV cache.",
+  "description": "Multi-tenant hosted MCP server for Oura Ring — 21 read-only tools, OAuth per user.",
   "version": "0.1.0",
   "repository": {
     "url": "https://github.com/Smirnov-Labs/mcpforoura",
