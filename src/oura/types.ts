@@ -110,3 +110,64 @@ export interface EnhancedTag {
   comment?: string | null;
   [key: string]: unknown;
 }
+
+export interface DailyStress {
+  id: string;
+  day: string;
+  stress_high?: number | null;        // seconds in high-stress state
+  recovery_high?: number | null;      // seconds in high-recovery state
+  day_summary?: string | null;        // "restored" | "normal" | "stressful"
+  [key: string]: unknown;
+}
+
+export interface DailySpO2 {
+  id: string;
+  day: string;
+  spo2_percentage?: { average: number | null } | null;
+  breathing_disturbance_index?: number | null;
+  [key: string]: unknown;
+}
+
+export interface DailyResilience {
+  id: string;
+  day: string;
+  level?: string | null;              // "limited"|"adequate"|"solid"|"strong"|"exceptional"
+  contributors?: {
+    sleep_recovery?: number | null;
+    daytime_recovery?: number | null;
+    stress?: number | null;
+  } | null;
+  [key: string]: unknown;
+}
+
+export interface DailyCardiovascularAge {
+  id: string;
+  day: string;
+  vascular_age?: number | null;
+  [key: string]: unknown;
+}
+
+export interface VO2MaxSample {
+  id: string;
+  day: string;
+  vo2_max?: number | null;
+  timestamp?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RecommendedSleepTime {
+  id: string;
+  day: string;
+  optimal_bedtime?: { start_offset?: number; end_offset?: number; day_tz?: number } | null;
+  status?: string | null;
+  recommendation?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RestModePeriod {
+  id: string;
+  start_day: string;
+  end_day?: string | null;
+  episode_type?: string | null;
+  [key: string]: unknown;
+}
