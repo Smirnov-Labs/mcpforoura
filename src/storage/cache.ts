@@ -1,5 +1,7 @@
 // src/storage/cache.ts
 
+import { sha256HexTruncated } from "../crypto.js";
+
 export interface CacheKey {
   userId: string;
   path: string;
@@ -11,6 +13,8 @@ export interface CacheSetOptions {
 }
 
 const HASH_LEN = 16;
+const PERSONAL_INFO_PATH = "/usercollection/personal_info";
+const HEARTRATE_PATH = "/usercollection/heartrate";
 
 function canonicalJson(query?: Record<string, string>): string {
   if (!query) return "{}";
@@ -21,12 +25,7 @@ function canonicalJson(query?: Record<string, string>): string {
 }
 
 async function paramsHash(query?: Record<string, string>): Promise<string> {
-  const data = new TextEncoder().encode(canonicalJson(query));
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .slice(0, HASH_LEN);
+  return sha256HexTruncated(canonicalJson(query), HASH_LEN);
 }
 
 async function buildKey(key: CacheKey): Promise<string> {
@@ -40,8 +39,8 @@ export function selectTTLSeconds(
   query?: Record<string, string>,
   now: Date = new Date()
 ): number {
-  if (path.includes("personal_info")) return 24 * 3600;
-  if (path.includes("heartrate")) return 30 * 60;
+  if (path === PERSONAL_INFO_PATH) return 24 * 3600;
+  if (path === HEARTRATE_PATH) return 30 * 60;
 
   const endDate = query?.end_date;
   if (!endDate) return 24 * 3600;
@@ -51,6 +50,7 @@ export function selectTTLSeconds(
   yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
   const yesterday = yesterdayDate.toISOString().slice(0, 10);
 
+  // Lexicographic order is chronological for fixed-length ISO dates (YYYY-MM-DD).
   if (endDate >= today) return 5 * 60;
   if (endDate === yesterday) return 60 * 60;
   return 24 * 3600;
