@@ -62,11 +62,13 @@ export interface GetMorningBriefingResult {
   today: {
     date: string;
     readiness: ReadinessOut | null;
+    // Oura dates daily_sleep to the day-of-wake-up, so last night's sleep
+    // (which is what a morning briefing is about) lives under today, not yesterday.
+    sleep: SleepOut | null;
     recommended_sleep_time: RecommendedSleepTimeOut | null;
   };
   yesterday: {
     date: string;
-    sleep: SleepOut | null;
     activity: ActivityOut | null;
     stress: StressOut | null;
     tags: TagOut[];
@@ -113,8 +115,8 @@ export async function executeGetMorningBriefing(
         end_date: today,
       }),
       safeRequestList<DailySleep>(client, "/usercollection/daily_sleep", {
-        start_date: yesterday,
-        end_date: yesterday,
+        start_date: today,
+        end_date: today,
       }),
       safeRequestList<DailyActivity>(client, "/usercollection/daily_activity", {
         start_date: yesterday,
@@ -132,7 +134,7 @@ export async function executeGetMorningBriefing(
 
   const readiness = pickByDay(readinessDocs, today);
   const sleepTimeDoc = pickByDay(sleepTimeDocs, today);
-  const sleep = pickByDay(sleepDocs, yesterday);
+  const sleep = pickByDay(sleepDocs, today);
   const activity = pickByDay(activityDocs, yesterday);
   const stress = pickByDay(stressDocs, yesterday);
 
@@ -144,6 +146,12 @@ export async function executeGetMorningBriefing(
             score: readiness.score ?? null,
             temperature_deviation: readiness.temperature_deviation ?? null,
             contributors: readiness.contributors ?? null,
+          }
+        : null,
+      sleep: sleep
+        ? {
+            score: sleep.score ?? null,
+            contributors: sleep.contributors ?? null,
           }
         : null,
       recommended_sleep_time: sleepTimeDoc
@@ -163,12 +171,6 @@ export async function executeGetMorningBriefing(
     },
     yesterday: {
       date: yesterday,
-      sleep: sleep
-        ? {
-            score: sleep.score ?? null,
-            contributors: sleep.contributors ?? null,
-          }
-        : null,
       activity: activity
         ? {
             score: activity.score ?? null,
