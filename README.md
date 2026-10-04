@@ -2,17 +2,25 @@
 
 [![smithery badge](https://smithery.ai/badge/issmirnov/oura)](https://smithery.ai/servers/issmirnov/oura) [![mcp registry](https://img.shields.io/badge/mcp%20registry-link.smirnov%2Fmcp--oura-blue)](https://registry.modelcontextprotocol.io/v0/servers?search=link.smirnov)
 
-Hosted remote MCP server for [Oura Ring](https://ouraring.com), live at **https://mcp-oura.smirnov.link/mcp**. Multi-tenant OAuth: each user authenticates to their own Oura account. Read-only. Built on Cloudflare Workers.
+**Ask your AI assistant about your Oura Ring data in plain language.** `mcpforoura` is a hosted, multi-tenant [Model Context Protocol](https://modelcontextprotocol.io) server for [Oura Ring](https://ouraring.com), live at **https://mcp-oura.smirnov.link/mcp**. Connect it to Claude (or any MCP-compatible client), authorize once with Oura, and query your sleep, readiness, activity, biometrics, and long-term trends across 21 read-only tools. Multi-tenant OAuth: each user authenticates to their own Oura account. Read-only. Built on Cloudflare Workers.
 
 Listed on [Smithery](https://smithery.ai/servers/issmirnov/oura) and the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=link.smirnov).
 
 Small-scale connector — currently in Oura's development-mode 10-user cap; production application is pending. Not affiliated with Oura Health Oy.
 
-**Status:** deployed and serving. 21 tools live across 4 implementation phases on top of the original M1-M8. KV cache live (M7). Phase 1–4 v2 tool expansion complete (Tier A wrappers, composites, analytics). Phase 5 cycle tools removed pending Oura API support.
+**Status:** deployed and serving. 21 tools live — core sleep/readiness/activity data plus biometrics, composite snapshots, and analytics. Phase 5 cycle tools removed pending Oura API support (see "Not available" below). Full build history is in the [milestone table](#build-progress).
 
 ## What you can ask
 
-21 tools live across 4 phases (Phase 5 cycle tools removed — see "Not available" below):
+Once connected, your assistant can answer questions like:
+
+- *"How did I sleep last night?"* — stages, timing, HR and HRV
+- *"Is my HRV normal for me this week?"* — compared against your personal baseline
+- *"How am I today?"* — a morning briefing of readiness, recommended sleep, and yesterday's stats
+- *"Does alcohol hurt my recovery?"* — correlate a logged tag against any metric
+- *"Flag any days this month that were unusual for me."* — statistical anomaly detection
+
+Those map onto 21 tools across 4 phases (Phase 5 cycle tools removed — see "Not available" below):
 
 **Core (M6 originals)**
 
