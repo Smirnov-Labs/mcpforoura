@@ -15,7 +15,7 @@ const app = new Hono<{ Bindings: Env & { OAUTH_PROVIDER: OAuthHelpers } }>();
 
 const CSRF_COOKIE = "__Host-OURA_MCP_CSRF";
 const APP_NAME = "MCP for Oura";
-const INSTALL_GUIDE_URL = "https://github.com/issmirnov/mcpforoura#readme";
+const INSTALL_GUIDE_URL = "https://github.com/Smirnov-Labs/mcpforoura#readme";
 
 function escapeHtml(value: string | undefined) {
   return (value || "")
@@ -77,6 +77,7 @@ function renderLayout(title: string, body: string) {
       .primary { background: #111; color: #fff; }
       .secondary { background: #fff; color: #111; }
       code { background: #f5f5f5; padding: 0.1rem 0.35rem; border-radius: 4px; }
+      li { margin: 0.35rem 0; }
       footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd; color: #444; font-size: 0.95rem; }
       a { color: #0b57d0; }
     </style>
@@ -111,8 +112,17 @@ function renderHomePage(request: Request) {
     `<div class="card">
       <p><strong>${escapeHtml(APP_NAME)}</strong></p>
       <h1>Hosted MCP connector for Oura Ring</h1>
-      <p>This service connects supported MCP clients to a user's Oura account through OAuth. Read-only.</p>
+      <p>Connect your Oura Ring to Claude or any MCP-compatible client and ask about your sleep, recovery, and daily health in plain language. Authentication goes through Oura's own OAuth, access is read-only, and there are no API keys to manage.</p>
       <p class="meta"><strong>MCP endpoint:</strong> <code>${escapeHtml(mcpUrl)}</code></p>
+      <h2>What you can ask</h2>
+      <p>Once connected, your assistant can draw on 21 read-only tools covering:</p>
+      <ul>
+        <li><strong>Sleep</strong> — last night's stages, timing, and heart rate / HRV; nightly scores over any date range; Oura's recommended bedtime window.</li>
+        <li><strong>Readiness &amp; recovery</strong> — daily readiness, long-term resilience, and a single-call morning briefing.</li>
+        <li><strong>Activity &amp; workouts</strong> — logged and auto-detected workouts, mindfulness sessions, and daily movement.</li>
+        <li><strong>Biometrics</strong> — daytime stress, nightly SpO2, intraday heart rate, VO2 max, and cardiovascular age.</li>
+        <li><strong>Trends &amp; analysis</strong> — compare a day against your 30- and 90-day baseline, weekly recaps, anomaly detection, and tag correlations such as &ldquo;does alcohol hurt my HRV?&rdquo;</li>
+      </ul>
       <p class="meta"><strong>Listed on:</strong> <a href="https://smithery.ai/servers/issmirnov/oura" rel="noopener">Smithery</a> &middot; <a href="https://registry.modelcontextprotocol.io/v0/servers?search=link.smirnov" rel="noopener">MCP Registry</a> &middot; <a href="https://github.com/Smirnov-Labs/mcpforoura" rel="noopener">GitHub</a></p>
       <div class="actions">
         <a class="link-button primary" href="${escapeHtml(INSTALL_GUIDE_URL)}">Setup instructions</a>
