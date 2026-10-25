@@ -4,6 +4,8 @@
 
 **Ask your AI assistant about your Oura Ring data in plain language.** `mcpforoura` is a hosted, multi-tenant [Model Context Protocol](https://modelcontextprotocol.io) server for [Oura Ring](https://ouraring.com), live at **https://mcp-oura.smirnov.link/mcp**. Connect it to Claude (or any MCP-compatible client), authorize once with Oura, and query your sleep, readiness, activity, biometrics, and long-term trends across 21 read-only tools. Multi-tenant OAuth: each user authenticates to their own Oura account. Read-only. Built on Cloudflare Workers.
 
+[![Add to Claude](docs/assets/add-to-claude.svg)][add-to-claude]
+
 Listed on [Smithery](https://smithery.ai/servers/issmirnov/oura) and the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=link.smirnov).
 
 Small-scale connector — currently in Oura's development-mode 10-user cap; production application is pending. Not affiliated with Oura Health Oy.
@@ -74,9 +76,14 @@ Cycle analytics (`get_cycle_phase`, `get_cycle_history`, `compare_metric_across_
 
 ## Adding the connector in Claude
 
-1. Settings → Connectors → Add custom connector.
-2. URL: `https://mcp-oura.smirnov.link/mcp`.
-3. Approve on this server's consent page → redirected to Oura → consent there → returned to Claude.
+[![Add to Claude](docs/assets/add-to-claude.svg)][add-to-claude]
+
+1. Click **Add to Claude**. It opens the **Add custom connector** dialog on claude.ai with the name (`MCP for Oura`) and URL filled in. Check both values, then click **Add**.
+2. Approve on this server's consent page → redirected to Oura → consent there → returned to Claude.
+
+To add it by hand, go to **Customize → Connectors → Add custom connector** and enter `https://mcp-oura.smirnov.link/mcp` as the URL.
+
+On a Team or Enterprise plan, an Owner adds custom connectors for the whole organization. Owners can use the [organization version of the link][add-to-claude-org]. Members then connect from **Customize → Connectors** with their own Oura account.
 
 The connector currently caps at 10 authorized users (Oura's default development-mode limit). To lift the cap, the Oura developer application must be approved for production by Oura.
 
@@ -192,3 +199,6 @@ Deployed at `https://mcp-oura.smirnov.link` on the Smirnov Labs Cloudflare accou
 ## License
 
 MIT. See `LICENSE`.
+
+[add-to-claude]: https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=MCP%20for%20Oura&connectorUrl=https%3A%2F%2Fmcp-oura.smirnov.link%2Fmcp
+[add-to-claude-org]: https://claude.ai/admin-settings/connectors?modal=add-custom-connector&connectorName=MCP%20for%20Oura&connectorUrl=https%3A%2F%2Fmcp-oura.smirnov.link%2Fmcp
