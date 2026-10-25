@@ -78,7 +78,7 @@ Cycle analytics (`get_cycle_phase`, `get_cycle_history`, `compare_metric_across_
 
 [![Add to Claude](docs/assets/add-to-claude.svg)][add-to-claude]
 
-1. Click **Add to Claude**. It opens the **Add custom connector** dialog on claude.ai with the name (`MCP for Oura`) and URL filled in. Check both values, then click **Add**.
+1. Click **Add to Claude**. It opens the **Add custom connector** dialog on claude.ai with the name (`Oura`) and URL filled in. Check both values, then click **Add**.
 2. Approve on this server's consent page → redirected to Oura → consent there → returned to Claude.
 
 To add it by hand, go to **Customize → Connectors → Add custom connector** and enter `https://mcp-oura.smirnov.link/mcp` as the URL.
@@ -200,5 +200,5 @@ Deployed at `https://mcp-oura.smirnov.link` on the Smirnov Labs Cloudflare accou
 
 MIT. See `LICENSE`.
 
-[add-to-claude]: https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=MCP%20for%20Oura&connectorUrl=https%3A%2F%2Fmcp-oura.smirnov.link%2Fmcp
-[add-to-claude-org]: https://claude.ai/admin-settings/connectors?modal=add-custom-connector&connectorName=MCP%20for%20Oura&connectorUrl=https%3A%2F%2Fmcp-oura.smirnov.link%2Fmcp
+[add-to-claude]: https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Oura&connectorUrl=https%3A%2F%2Fmcp-oura.smirnov.link%2Fmcp
+[add-to-claude-org]: https://claude.ai/admin-settings/connectors?modal=add-custom-connector&connectorName=Oura&connectorUrl=https%3A%2F%2Fmcp-oura.smirnov.link%2Fmcp
