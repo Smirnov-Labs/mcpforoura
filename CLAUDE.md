@@ -163,6 +163,7 @@ For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Our
 - **Multi-account CF login.** Add `"account_id": "<id>"` to `wrangler.jsonc` so commands aren't ambiguous.
 - **First deploy registers the worker.** `wrangler secret put` works after that.
 - **`FormDataEntryValue` is a DOM type.** Not in `lib: ["es2021"]`. Use `string | File | null` for `formData.get(...)` returns.
+- **`daily_activity` treats `end_date` as exclusive.** Every other daily endpoint is inclusive. `OuraClient.request` asks for `end_date + 1` on that path and filters out docs past the requested end, so callers can pass inclusive ranges everywhere. Without it, single-day activity queries return nothing and range queries drop their last day.
 - **The OAuth provider's `props` field is how user identity flows from callback to McpAgent.** Inside the agent, `this.props.ouraUserId` is set; outside, it's `undefined`.
 
 ## Tool inventory
@@ -175,7 +176,7 @@ For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Our
 
 **Core (3, M6 originals)**
 - `get_daily_summary` — single-day sleep + readiness + activity snapshot
-- `get_date_range` — single metric over up to 180 days
+- `get_date_range` — single metric over up to 180 days (includes `active_calories` / `total_calories`)
 - `get_last_night_sleep` — most recent night's detailed sleep data
 
 **Phase 1 — Activity & tagging (5)**

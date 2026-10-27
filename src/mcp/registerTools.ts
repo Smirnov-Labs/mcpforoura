@@ -87,7 +87,7 @@ export function registerOuraTools(server: McpServer, env: Env, props: AuthProps)
     {
       title: "Date Range",
       description:
-        "Get a single metric over a date range for trend analysis. Use this when the user asks about trends over multiple days like 'how was my sleep this week' or 'show me my HRV over the past month'. For a single-day snapshot, use get_daily_summary.",
+        "Get a single metric over a date range for trend analysis. Use this when the user asks about trends over multiple days like 'how was my sleep this week' or 'show me my HRV over the past month'. Supports daily active_calories and total_calories (kcal) as well as steps and scores. For a single-day snapshot, use get_daily_summary.",
       inputSchema: dateRangeSchema,
       annotations: { title: "Date Range", readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
