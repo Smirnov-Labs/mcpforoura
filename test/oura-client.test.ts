@@ -87,6 +87,53 @@ describe("OuraClient.request — happy path", () => {
   });
 });
 
+describe("OuraClient.request — daily_activity exclusive end_date", () => {
+  it("asks Oura for end_date + 1 and drops docs past the requested end", async () => {
+    const kv = fakeKV();
+    const cache = fakeKV();
+    await saveStoredToken(kv, SECRET, "u1", VALID_TOKEN);
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, {
+        data: [
+          { day: "2026-10-25", steps: 8868, active_calories: 410, total_calories: 2450 },
+          { day: "2026-10-26", steps: 4000, active_calories: 200, total_calories: 2100 },
+        ],
+      })
+    );
+
+    const client = new OuraClient(makeEnv(kv, cache), "u1");
+    const result = await client.request<{ data: Array<{ day: string; active_calories: number }> }>(
+      "/usercollection/daily_activity",
+      { start_date: "2026-10-25", end_date: "2026-10-25" }
+    );
+
+    const url = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(url.searchParams.get("start_date")).toBe("2026-10-25");
+    expect(url.searchParams.get("end_date")).toBe("2026-10-26");
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].day).toBe("2026-10-25");
+    expect(result.data[0].active_calories).toBe(410);
+  });
+
+  it("leaves end_date untouched for inclusive endpoints", async () => {
+    const kv = fakeKV();
+    const cache = fakeKV();
+    await saveStoredToken(kv, SECRET, "u1", VALID_TOKEN);
+
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { data: [] }));
+
+    const client = new OuraClient(makeEnv(kv, cache), "u1");
+    await client.request("/usercollection/daily_sleep", {
+      start_date: "2026-10-25",
+      end_date: "2026-10-25",
+    });
+
+    const url = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(url.searchParams.get("end_date")).toBe("2026-10-25");
+  });
+});
+
 describe("OuraClient.request — refresh when token is near expiry", () => {
   it("refreshes via oauth/token before calling the endpoint", async () => {
     const kv = fakeKV();

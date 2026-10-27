@@ -12,6 +12,8 @@ const METRIC = z.enum([
   "hrv",
   "resting_hr",
   "steps",
+  "active_calories",
+  "total_calories",
   "total_sleep_hours",
   "efficiency_pct",
 ]);

@@ -11,6 +11,8 @@ const RANGE_METRIC = z.enum([
   "hrv",
   "resting_hr",
   "steps",
+  "active_calories",
+  "total_calories",
   "total_sleep_hours",
   "efficiency_pct",
 ]);
@@ -31,7 +33,7 @@ export const dateRangeSchema = {
       "End date in strict YYYY-MM-DD (user's local date). Max 180 days from start."
     ),
   metric: RANGE_METRIC.describe(
-    "Which metric to project over the range. sleep_score/total_sleep_hours/efficiency_pct come from daily_sleep + sleep endpoints; readiness_score/hrv/resting_hr come from daily_readiness; activity_score/steps from daily_activity."
+    "Which metric to project over the range. sleep_score/total_sleep_hours/efficiency_pct come from daily_sleep + sleep endpoints; readiness_score/hrv/resting_hr come from daily_readiness; activity_score/steps/active_calories/total_calories (kcal) from daily_activity."
   ),
 };
 
@@ -42,7 +44,12 @@ const MAX_RANGE_DAYS = 180;
 const READINESS_METRICS = new Set<RangeMetric>(["readiness_score", "hrv", "resting_hr"]);
 const SLEEP_DAILY_METRICS = new Set<RangeMetric>(["sleep_score"]);
 const SLEEP_PERIOD_METRICS = new Set<RangeMetric>(["total_sleep_hours", "efficiency_pct"]);
-const ACTIVITY_METRICS = new Set<RangeMetric>(["activity_score", "steps"]);
+const ACTIVITY_METRICS = new Set<RangeMetric>([
+  "activity_score",
+  "steps",
+  "active_calories",
+  "total_calories",
+]);
 
 export interface DateRangePoint {
   date: string;
@@ -115,6 +122,8 @@ function pickActivityValue(metric: RangeMetric, doc: DailyActivity | undefined):
   if (!doc) return null;
   if (metric === "activity_score") return doc.score ?? null;
   if (metric === "steps") return doc.steps ?? null;
+  if (metric === "active_calories") return doc.active_calories ?? null;
+  if (metric === "total_calories") return doc.total_calories ?? null;
   return null;
 }
 

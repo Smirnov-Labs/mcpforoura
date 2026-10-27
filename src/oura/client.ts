@@ -13,6 +13,16 @@ const OURA_API_BASE = "https://api.ouraring.com/v2";
 const PERSONAL_INFO_PATH = "/usercollection/personal_info";
 const REFRESH_WINDOW_MS = 5 * 60 * 1000;
 const RATE_LIMIT_BACKOFF_MS = [1000, 2000, 4000];
+// Oura treats end_date as EXCLUSIVE on this endpoint (unlike daily_sleep,
+// daily_readiness, etc.), so start_date == end_date returns nothing and every
+// range silently drops its last day.
+const EXCLUSIVE_END_DATE_PATHS = new Set(["/usercollection/daily_activity"]);
+
+function nextDay(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -119,6 +129,22 @@ export class OuraClient {
   }
 
   async request<T>(path: string, query?: Record<string, string>): Promise<T> {
+    const requestedEnd = query?.end_date;
+    if (!EXCLUSIVE_END_DATE_PATHS.has(path) || !requestedEnd) {
+      return this.fetchCached<T>(path, query);
+    }
+    // Ask for one extra day so the requested end is included, then drop any
+    // doc past it so callers see inclusive semantics like every other endpoint.
+    const data = await this.fetchCached<T>(path, { ...query, end_date: nextDay(requestedEnd) });
+    const list = data as unknown as OuraListResponse<{ day?: string }>;
+    if (!Array.isArray(list?.data)) return data;
+    return {
+      ...list,
+      data: list.data.filter((d) => typeof d.day !== "string" || d.day <= requestedEnd),
+    } as unknown as T;
+  }
+
+  private async fetchCached<T>(path: string, query?: Record<string, string>): Promise<T> {
     const cacheKey: CacheKey = { userId: this.userId, path, query };
     const cached = await getCached<T>(this.env.OURA_CACHE, this.env.ENCRYPTION_SECRET, cacheKey);
     if (cached !== null) return cached;

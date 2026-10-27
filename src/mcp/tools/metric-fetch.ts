@@ -15,6 +15,8 @@ export type Metric =
   | "hrv"
   | "resting_hr"
   | "steps"
+  | "active_calories"
+  | "total_calories"
   | "total_sleep_hours"
   | "efficiency_pct";
 
@@ -34,7 +36,12 @@ const SLEEP_PERIOD_METRICS = new Set<Metric>([
   "hrv",
   "resting_hr",
 ]);
-const ACTIVITY_METRICS = new Set<Metric>(["activity_score", "steps"]);
+const ACTIVITY_METRICS = new Set<Metric>([
+  "activity_score",
+  "steps",
+  "active_calories",
+  "total_calories",
+]);
 
 function pickReadiness(metric: Metric, doc: DailyReadiness): number | null {
   if (metric === "readiness_score") return doc.score ?? null;
@@ -44,6 +51,8 @@ function pickReadiness(metric: Metric, doc: DailyReadiness): number | null {
 function pickActivity(metric: Metric, doc: DailyActivity): number | null {
   if (metric === "activity_score") return doc.score ?? null;
   if (metric === "steps") return doc.steps ?? null;
+  if (metric === "active_calories") return doc.active_calories ?? null;
+  if (metric === "total_calories") return doc.total_calories ?? null;
   return null;
 }
 
