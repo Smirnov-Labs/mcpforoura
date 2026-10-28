@@ -17,7 +17,7 @@ const BASELINE_METRIC = z.enum([
 ]);
 export type BaselineMetric = z.infer<typeof BASELINE_METRIC>;
 
-export const compareToBaselineSchema = {
+export const compareToBaselineSchema = z.object({
   metric: BASELINE_METRIC.describe(
     "Which personal metric to compare. sleep_score/total_sleep_hours/efficiency_pct from daily_sleep+sleep; readiness_score/hrv/resting_hr from daily_readiness; activity_score from daily_activity."
   ),
@@ -26,7 +26,7 @@ export const compareToBaselineSchema = {
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
     .describe("Day to compare (YYYY-MM-DD, user's LOCAL date). Default: today (server UTC)."),
-};
+});
 
 export interface CompareToBaselineInput {
   metric: BaselineMetric;

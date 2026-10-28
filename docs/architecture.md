@@ -45,15 +45,15 @@ It's read-only. It does not write to Oura, does not create transactions, does no
             │  │     /oura/callback (grant+delete)  │    │
             │  │     /.well-known/*                 │    │
             │  │                                    │    │
-            │  │   apiRoute /mcp → OuraMCP.serve()  │    │
+            │  │   apiRoute /mcp → mcpHandler       │    │
             │  └─────────────┬──────────────────────┘    │
             │                │                           │
             │                ▼                           │
             │  ┌────────────────────────────────────┐    │
-            │  │ OuraMCP (Durable Object)           │    │
-            │  │   extends McpAgent                 │    │
-            │  │   this.props.ouraUserId            │    │
-            │  │   registers 21 tools on init()     │    │
+            │  │ mcpHandler (stateless)             │    │
+            │  │   createMcpHandler, per request:   │    │
+            │  │   new McpServer, ctx.props         │    │
+            │  │   registerOuraTools(...)           │    │
             │  │   each tool → new OuraClient(...)  │    │
             │  └─────────────┬──────────────────────┘    │
             │                │                           │
@@ -109,13 +109,13 @@ On return at `/oura/callback`:
 3. Fetch `/usercollection/personal_info` to learn the Oura user id.
 4. Derive a stable internal user id: `sha256("oura:" + ouraPersonalId).slice(0, 32)`.
 5. Encrypt and store the tokens at `tokens:{ouraUserId}` in `OURA_TOKENS`.
-6. Call `c.env.OAUTH_PROVIDER.completeAuthorization({ ..., userId: ouraUserId, props: { ouraUserId } })` — *this* is what hands an MCP bearer token back to the client and is what makes `this.props.ouraUserId` available inside the McpAgent.
+6. Call `c.env.OAUTH_PROVIDER.completeAuthorization({ ..., userId: ouraUserId, props: { ouraUserId } })` — *this* is what hands an MCP bearer token back to the client. On every `/mcp` request the OAuth provider puts these props on `ctx.props`, which is how the tools learn `ouraUserId`.
 
 The same callback also handles `flow: "delete"` payloads. See "Deletion" below.
 
-## The McpAgent and per-call OuraClient
+## The stateless /mcp handler and per-call OuraClient
 
-Inside the Worker, the OAuth provider's `apiRoute: "/mcp"` routes authenticated MCP traffic to a Durable Object (`OuraMCP extends McpAgent`). The DO's `init()` runs once per session and registers the 21 tools onto an `McpServer` instance. Each registered tool is wrapped by `clientTool(env, props, handler)` — a small adapter that constructs a fresh `OuraClient(env, props.ouraUserId)` per tool invocation, runs the handler, and converts thrown `OuraInvalidInput` / `OuraReauthRequired` / etc. into MCP error content.
+Inside the Worker, the OAuth provider's `apiRoute: "/mcp"` routes authenticated MCP traffic to `mcpHandler` in `src/index.ts`. It calls `createMcpHandler` from `agents/mcp/server`, which builds a new `McpServer` (MCP SDK v2) for every request and registers the tools on it with the user's `ctx.props`. There are no sessions and no Durable Object: until PR #26, `/mcp` ran on `OuraMCP extends McpAgent`, one Durable Object per session. Each registered tool is wrapped by `clientTool(env, props, handler)` — a small adapter that constructs a fresh `OuraClient(env, props.ouraUserId)` per tool invocation, runs the handler, and converts thrown `OuraInvalidInput` / `OuraReauthRequired` / etc. into MCP error content.
 
 A fresh `OuraClient` per tool call means:
 - Token cache is per-tool-call (acceptable: KV reads are cheap, ~10ms).

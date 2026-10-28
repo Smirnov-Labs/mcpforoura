@@ -186,4 +186,33 @@ describe("/mcp", () => {
     expect(JSON.parse(result.content[0].text)).toMatchObject({ code: "oura_reauth_required" });
   });
 
+  it("ignores a session ID left over from McpAgent", async () => {
+    // Connectors that signed in before the switch still send the session ID
+    // McpAgent issued. The stateless handler has no sessions to look it up in.
+    const { session } = await connect("user-a");
+    const stale = { ...session, sessionId: "7d3e9a0c5b1f4e2a8c6d0b9f1e3a5c7d9b2f4a6c8e0d1b3f5a7c9e2d4b6f8a0c" };
+    const ping = await callTool(stale, "ping");
+    expect(JSON.parse(ping.content[0].text)).toEqual({ ok: true, user_id: "user-a" });
+  });
+
+  it("answers GET and DELETE with 405, as a server without sessions may", async () => {
+    const { session } = await connect("user-a");
+    for (const method of ["GET", "DELETE"]) {
+      const res = await exports.default.fetch(MCP_URL, {
+        method,
+        headers: { Authorization: `Bearer ${session.token}`, Accept: "text/event-stream" },
+      });
+      expect(res.status).toBe(405);
+    }
+  });
+
+  it("refuses a browser request from another site", async () => {
+    // Server-side clients such as Claude's connectors send no Origin.
+    const { session } = await connect("user-a");
+    const message = { jsonrpc: "2.0", id: nextId++, method: "tools/list" };
+    const res = await post(session, message, { Origin: "https://attacker.example" });
+    expect(res.status).toBe(403);
+    const local = await post(session, message, { Origin: "http://localhost:6274" });
+    expect(local.status).toBe(200);
+  });
 });

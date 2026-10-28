@@ -3,12 +3,12 @@ import type { OuraClient } from "../../oura/client.js";
 import type { DailyResilience } from "../../oura/types.js";
 import { resolveDate } from "./dates.js";
 
-export const getResilienceSchema = {
+export const getResilienceSchema = z.object({
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .describe("Date YYYY-MM-DD, user's LOCAL date."),
-};
+});
 
 export interface GetResilienceInput {
   date: string;

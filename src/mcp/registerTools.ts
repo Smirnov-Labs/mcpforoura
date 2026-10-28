@@ -1,4 +1,5 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
+import { z } from "zod";
 import type { AuthProps } from "../auth/types.js";
 import { OuraClient } from "../oura/client.js";
 import { dailySummarySchema, executeDailySummary } from "./tools/daily-summary.js";
@@ -64,7 +65,7 @@ export function registerOuraTools(server: McpServer, env: Env, props: AuthProps)
       title: "Ping",
       description:
         "Returns {ok: true, user_id}. Used to verify auth + connectivity. Does not call Oura.",
-      inputSchema: {},
+      inputSchema: z.object({}),
       annotations: { title: "Ping", readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     async () => jsonContent({ ok: true, user_id: props.ouraUserId })

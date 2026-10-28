@@ -5,7 +5,7 @@ import { resolveDate } from "./dates.js";
 
 const SCOPE = z.enum(["sleep", "readiness", "activity"]);
 
-export const dailySummarySchema = {
+export const dailySummarySchema = z.object({
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -16,7 +16,7 @@ export const dailySummarySchema = {
     .array(SCOPE)
     .optional()
     .describe("Which scores to include. Default: all three."),
-};
+});
 
 export type DailySummaryInput = {
   date: string;

@@ -3,12 +3,12 @@ import type { OuraClient } from "../../oura/client.js";
 import type { DailyStress } from "../../oura/types.js";
 import { resolveDate } from "./dates.js";
 
-export const getStressSchema = {
+export const getStressSchema = z.object({
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .describe("Date YYYY-MM-DD, user's LOCAL date."),
-};
+});
 
 export interface GetStressInput {
   date: string;

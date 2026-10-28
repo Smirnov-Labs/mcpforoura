@@ -5,7 +5,7 @@ import type { Workout } from "../../oura/types.js";
 import { OuraInvalidInput } from "../../errors.js";
 import { daysBetween, isIsoDate } from "./dates.js";
 
-export const getWorkoutsSchema = {
+export const getWorkoutsSchema = z.object({
   start: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -14,7 +14,7 @@ export const getWorkoutsSchema = {
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .describe("End date YYYY-MM-DD, user's LOCAL date. Max 180 days."),
-};
+});
 
 export interface GetWorkoutsInput {
   start: string;

@@ -94,7 +94,7 @@ Two-stage OAuth on Cloudflare Workers:
 - **Flow A (MCP client ↔ this server).** Handled by [`@cloudflare/workers-oauth-provider`](https://github.com/cloudflare/workers-oauth-provider). Standard OAuth2 + PKCE + dynamic client registration. Consent page is rendered server-side and includes a CSRF token.
 - **Flow B (this server ↔ Oura).** Hand-rolled. Triggered inside Flow A: redirect to `cloud.ouraring.com`, exchange the returned code for tokens, fetch `/personal_info` to derive a stable user id, store the token AES-GCM encrypted in Cloudflare KV, then complete Flow A with that user id attached as `props`.
 
-A `McpAgent`-derived Durable Object holds session state and routes MCP method calls to typed tool handlers. Each tool builds an `OuraClient` per call that handles token refresh, 401 disambiguation (re-auth vs. endpoint gated vs. account membership inactive), and 429 exponential backoff.
+The `/mcp` endpoint is stateless: for each request, `createMcpHandler` from Cloudflare's `agents` SDK builds an MCP server for the signed-in user, and that server routes the call to a typed tool handler. Each tool builds an `OuraClient` per call that handles token refresh, 401 disambiguation (re-auth vs. endpoint gated vs. account membership inactive), and 429 exponential backoff.
 
 See `CLAUDE.md` for the full file-by-file walkthrough.
 

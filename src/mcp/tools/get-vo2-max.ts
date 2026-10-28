@@ -3,12 +3,12 @@ import type { OuraClient } from "../../oura/client.js";
 import type { VO2MaxSample } from "../../oura/types.js";
 import { resolveDate, shiftDate } from "./dates.js";
 
-export const getVo2MaxSchema = {
+export const getVo2MaxSchema = z.object({
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .describe("Date YYYY-MM-DD, user's LOCAL date. Returns the most recent VO2 max within 30 days of this date."),
-};
+});
 
 export interface GetVo2MaxInput {
   date: string;

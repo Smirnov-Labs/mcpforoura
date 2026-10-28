@@ -4,10 +4,10 @@ import type { RestModePeriod } from "../../oura/types.js";
 import { OuraInvalidInput } from "../../errors.js";
 import { daysBetween, isIsoDate } from "./dates.js";
 
-export const getRestModePeriodsSchema = {
+export const getRestModePeriodsSchema = z.object({
   start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Start date YYYY-MM-DD (local)."),
   end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("End date YYYY-MM-DD (local). Max 365 days."),
-};
+});
 
 export interface GetRestModePeriodsInput {
   start: string;

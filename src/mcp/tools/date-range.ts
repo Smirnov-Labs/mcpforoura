@@ -19,7 +19,7 @@ const RANGE_METRIC = z.enum([
 
 export type RangeMetric = z.infer<typeof RANGE_METRIC>;
 
-export const dateRangeSchema = {
+export const dateRangeSchema = z.object({
   start: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -35,7 +35,7 @@ export const dateRangeSchema = {
   metric: RANGE_METRIC.describe(
     "Which metric to project over the range. sleep_score/total_sleep_hours/efficiency_pct come from daily_sleep + sleep endpoints; readiness_score/hrv/resting_hr come from daily_readiness; activity_score/steps/active_calories/total_calories (kcal) from daily_activity."
   ),
-};
+});
 
 export type DateRangeInput = { start: string; end: string; metric: RangeMetric };
 

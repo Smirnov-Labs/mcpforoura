@@ -8,11 +8,11 @@ import { mean, nonNull } from "./stats.js";
 const RESOLUTION = z.enum(["raw", "5min", "15min"]);
 export type HrResolution = z.infer<typeof RESOLUTION>;
 
-export const getHeartRateSeriesSchema = {
+export const getHeartRateSeriesSchema = z.object({
   start: z.string().datetime().describe("Start datetime ISO 8601 (timezone-aware)."),
   end: z.string().datetime().describe("End datetime ISO 8601. Max 24h after start."),
   resolution: RESOLUTION.optional().describe("Default 5min. Use raw for unbucketed."),
-};
+});
 
 export interface GetHeartRateSeriesInput {
   start: string;
