@@ -1,4 +1,4 @@
-import OAuthProvider from "@cloudflare/workers-oauth-provider";
+import OAuthProvider, { type OAuthProviderOptions } from "@cloudflare/workers-oauth-provider";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
 import type { AuthProps } from "./auth/types.js";
@@ -25,8 +25,9 @@ export class OuraMCP extends McpAgent<Env, Record<string, never>, AuthProps> {
 const MCP_SCOPES = ["mcp"];
 
 // baseUrl is env.PUBLIC_BASE_URL, so staging advertises itself, not prod.
-function createOAuthProvider(baseUrl: string) {
-  return new OAuthProvider({
+// Tests pass these options to getOAuthApi to issue access tokens.
+export function oauthProviderOptions(baseUrl: string): OAuthProviderOptions<Env> {
+  return {
     apiRoute: "/mcp",
     apiHandler: OuraMCP.serve("/mcp"),
     defaultHandler: app,
@@ -56,11 +57,11 @@ function createOAuthProvider(baseUrl: string) {
       resource: `${baseUrl}/mcp`,
       authorization_servers: [baseUrl],
     },
-  });
+  };
 }
 
 // Built on the first request, once env is available.
-let oauthProvider: ReturnType<typeof createOAuthProvider> | undefined;
+let oauthProvider: OAuthProvider<Env> | undefined;
 
 // Wrap the OAuthProvider so we can intercept real browser GETs to /mcp and
 // serve a friendly "this is an MCP endpoint" page instead of a JSON 401.
@@ -77,7 +78,7 @@ export default {
         return renderMcpHelloPage(url);
       }
     }
-    oauthProvider ??= createOAuthProvider(env.PUBLIC_BASE_URL);
+    oauthProvider ??= new OAuthProvider(oauthProviderOptions(env.PUBLIC_BASE_URL));
     return oauthProvider.fetch(request, env, ctx);
   },
 };
