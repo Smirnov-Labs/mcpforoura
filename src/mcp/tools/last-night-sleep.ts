@@ -31,8 +31,12 @@ export async function executeLastNightSleep(
   client: OuraClient,
   _input?: Record<string, never>
 ): Promise<LastNightSleepResult> {
-  const end = today();
-  const start = shiftDate(end, -2);
+  // The window ends one day past server UTC today: east of UTC, the user's
+  // last night can already belong to the next UTC day. No sleep ends in the
+  // future, so the extra day can't pick the wrong night.
+  const now = today();
+  const start = shiftDate(now, -2);
+  const end = shiftDate(now, 1);
 
   const [periods, dailySleepDocs] = await Promise.all([
     client.collectAll<SleepPeriod>("/usercollection/sleep", {

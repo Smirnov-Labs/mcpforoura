@@ -129,7 +129,7 @@ The server runs in UTC. Oura attributes daily docs to the **user's local day** (
 
 Tools accept dates as strict `YYYY-MM-DD` (regex-enforced in the Zod schema). Tool descriptions explicitly tell the model to compute from the user's local date and never pass `"today"`/`"yesterday"` sentinels.
 
-The one exception is `get_last_night_sleep`, which uses server UTC `today()` to compute a 2-day query window. The 2-day buffer covers any timezone offset, and the picker selects by `bedtime_end` so the user's actual last night is always the most recent qualifying period.
+The one exception is `get_last_night_sleep`, which uses server UTC `today()`. Its window runs from two days before that date to one day after it. The day after matters east of UTC: in the user's morning, last night can belong to the next UTC day. The picker selects by `bedtime_end`, so the user's actual last night is always the most recent qualifying period.
 
 ## Encryption
 
@@ -186,7 +186,7 @@ For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Our
 - **Multi-account CF login.** Add `"account_id": "<id>"` to `wrangler.jsonc` so commands aren't ambiguous.
 - **First deploy registers the worker.** `wrangler secret put` works after that.
 - **`FormDataEntryValue` is a DOM type.** Not in `lib: ["es2021"]`. Use `string | File | null` for `formData.get(...)` returns.
-- **`daily_activity` treats `end_date` as exclusive.** Every other daily endpoint is inclusive. `OuraClient.request` asks for `end_date + 1` on that path and filters out docs past the requested end, so callers can pass inclusive ranges everywhere. Without it, single-day activity queries return nothing and range queries drop their last day.
+- **Oura's `end_date` is exclusive on some endpoints.** `daily_activity` and `sleep` leave the end day out; `daily_sleep` and `daily_readiness` include it. Oura's docs don't say which is which. So `OuraClient.request` asks every endpoint for `end_date + 1`, then drops docs past the requested end: by `day`, or by `start_day` for rest-mode periods and enhanced tags. Tools pass inclusive ranges everywhere. Without this, a single-day query on an exclusive endpoint returns nothing, and a range drops its last day: `compare_to_baseline` returned null for the requested night's HRV, resting HR and total sleep.
 - **The grant's `props` carry the user's identity to the tools.** `/oura/callback` passes `{ ouraUserId }` to `completeAuthorization`. On each `/mcp` request the OAuth provider puts those props on `ctx.props`, and `mcpHandler` hands them to `registerOuraTools`.
 
 ## Tool inventory
@@ -238,6 +238,7 @@ All milestones complete:
 - ✅ Off-by-one fixes: `span >= MAX_DAYS` in workouts, sessions, tags, rest_mode_periods
 - ✅ `daily_activity` end-date fix and calorie metrics; all dependencies at latest (`agents` 0.31, `workers-oauth-provider` 1.2, `npm audit` clean); staging environment (PR #25, 2026-10-27)
 - ✅ `/mcp` moved from `McpAgent` to the stateless `createMcpHandler` on MCP SDK v2; MCP SDK v1 dropped (PR #26)
+- ✅ Inclusive `end_date` on every Oura endpoint (`sleep` left the end day out too); `get_last_night_sleep` finds last night east of UTC (PR #27)
 - ❌ Phase 5 cycle tools removed (Oura v2 API has no public cycle endpoints)
 
 ## Known limits
