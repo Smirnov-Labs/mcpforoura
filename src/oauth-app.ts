@@ -1,4 +1,10 @@
-import type { AuthRequest, ClientInfo, OAuthHelpers } from "@cloudflare/workers-oauth-provider";
+import { AuthorizationError, authorizationErrorRedirect } from "@cloudflare/workers-oauth-provider";
+import type {
+  AuthorizationErrorCode,
+  AuthRequest,
+  ClientInfo,
+  OAuthHelpers,
+} from "@cloudflare/workers-oauth-provider";
 import { Hono } from "hono";
 import { bindStateToSession, createOAuthState, validateOAuthState } from "./auth/session.js";
 import type { AuthProps, StoredOuraToken } from "./auth/types.js";
@@ -99,16 +105,16 @@ function renderLayout(title: string, body: string) {
 </html>`;
 }
 
-function redirectOAuthError(request: AuthRequest, error: string, description: string, headers?: HeadersInit) {
-  const redirectUrl = new URL(request.redirectUri);
-  redirectUrl.searchParams.set("error", error);
-  redirectUrl.searchParams.set("error_description", description);
-  if (request.state) {
-    redirectUrl.searchParams.set("state", request.state);
-  }
+// The provider advertises RFC 9207, so error redirects must carry `iss` too.
+function redirectOAuthError(
+  request: AuthRequest,
+  error: AuthorizationErrorCode,
+  description: string,
+  headers?: HeadersInit
+) {
   return new Response(null, {
     status: 302,
-    headers: { ...(headers || {}), Location: redirectUrl.toString() },
+    headers: { ...(headers || {}), Location: authorizationErrorRedirect(request, error, description) },
   });
 }
 
@@ -361,7 +367,7 @@ app.get("/.well-known/glama.json", (c) =>
 
 // Smithery fallback — used only if Smithery's auto-scanner can't reach the tool list
 // through OAuth. OAuth discovery itself is already handled by workers-oauth-provider
-// at /.well-known/oauth-authorization-server and /.well-known/oauth-protected-resource.
+// at /.well-known/oauth-authorization-server and /.well-known/oauth-protected-resource/mcp.
 app.get("/.well-known/mcp/server-card.json", (c) =>
   c.json({
     serverInfo: {
@@ -396,7 +402,16 @@ app.get("/.well-known/mcp/server-card.json", (c) =>
 );
 
 app.get("/authorize", async (c) => {
-  const oauthReqInfo = await c.env.OAUTH_PROVIDER.parseAuthRequest(c.req.raw);
+  let oauthReqInfo: AuthRequest;
+  try {
+    oauthReqInfo = await c.env.OAUTH_PROVIDER.parseAuthRequest(c.req.raw);
+  } catch (error) {
+    if (!(error instanceof AuthorizationError)) throw error;
+    // redirectTo is set only once the client and redirect URI check out;
+    // otherwise the error must be shown here, never sent to the redirect URI.
+    if (error.redirectTo) return c.redirect(error.redirectTo, 302);
+    return c.html(renderErrorPage(error.description), 400);
+  }
   const clientInfo = await c.env.OAUTH_PROVIDER.lookupClient(oauthReqInfo.clientId);
   if (!clientInfo) {
     return c.text("Unknown OAuth client", 400);
@@ -427,18 +442,20 @@ app.post("/authorize", async (c) => {
   const { oauthReqInfo } = decodeState<{ oauthReqInfo: AuthRequest }>(encodedState);
   const csrfClearCookie = clearCsrfCookie();
 
-  if (formData.get("decision") !== "approve") {
-    return redirectOAuthError(oauthReqInfo, "access_denied", "User denied authorization.", {
-      "Set-Cookie": csrfClearCookie,
-    });
-  }
-
+  // The request came back through the form, so check it before redirecting
+  // anywhere, the denial included.
   const clientInfo = await c.env.OAUTH_PROVIDER.lookupClient(oauthReqInfo.clientId);
   if (!clientInfo) {
     return c.text("Unknown OAuth client", 400);
   }
   if (!clientInfo.redirectUris.includes(oauthReqInfo.redirectUri)) {
     return c.text("OAuth client redirect URI is not registered", 400);
+  }
+
+  if (formData.get("decision") !== "approve") {
+    return redirectOAuthError(oauthReqInfo, "access_denied", "User denied authorization.", {
+      "Set-Cookie": csrfClearCookie,
+    });
   }
 
   const { stateToken } = await createOAuthState({ flow: "grant", oauthReqInfo }, c.env.OAUTH_KV);
@@ -486,9 +503,11 @@ app.get("/oura/callback", async (c) => {
         headers: { "Content-Type": "text/html; charset=utf-8", "Set-Cookie": clearCookie },
       });
     }
+    // Oura's error codes describe Oura's side of the flow (its scopes, its
+    // client), so only a denial passes through to the MCP client as-is.
     return redirectOAuthError(
       oauthReqInfo!,
-      oauthError,
+      oauthError === "access_denied" ? "access_denied" : "server_error",
       oauthErrorDescription || "Upstream Oura authorization failed.",
       { "Set-Cookie": clearCookie }
     );

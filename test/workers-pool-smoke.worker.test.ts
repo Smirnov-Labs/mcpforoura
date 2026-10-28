@@ -2,7 +2,7 @@
 //
 // Smoke test proving the Workers Vitest pool is wired up correctly: these
 // assertions only hold when the test executes inside the Cloudflare Workers
-// runtime (workerd) via @cloudflare/vitest-pool-workers, not plain Node.
+// runtime (workerd) via @cloudflare/vitest-plugin, not plain Node.
 import { describe, expect, it } from "vitest";
 
 describe("vitest-pool-workers smoke test", () => {
