@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { executeCompareToBaseline } from "../src/mcp/tools/compare-to-baseline";
+import { shiftDate } from "../src/mcp/tools/dates";
 import { OuraClient } from "../src/oura/client";
 import { saveStoredToken } from "../src/storage/tokens";
 import type { StoredOuraToken } from "../src/auth/types";
@@ -87,7 +89,24 @@ describe("OuraClient.request — happy path", () => {
   });
 });
 
-describe("OuraClient.request — daily_activity exclusive end_date", () => {
+// Oura's API docs don't say whether end_date is inclusive, and endpoints
+// differ. This fake leaves the end day out on every path, as daily_activity
+// and sleep do.
+function ouraWithExclusiveEnd(docsByPath: Record<string, Array<Record<string, unknown>>>) {
+  fetchMock.mockImplementation(async (input: string) => {
+    const url = new URL(input);
+    const path = url.pathname.replace(/^\/v2/, "");
+    const start = url.searchParams.get("start_date") ?? "";
+    const end = url.searchParams.get("end_date") ?? "";
+    const data = (docsByPath[path] ?? []).filter((doc) => {
+      const day = String(doc.day ?? doc.start_day);
+      return day >= start && day < end;
+    });
+    return jsonResponse(200, { data });
+  });
+}
+
+describe("OuraClient.request — end_date", () => {
   it("asks Oura for end_date + 1 and drops docs past the requested end", async () => {
     const kv = fakeKV();
     const cache = fakeKV();
@@ -116,21 +135,95 @@ describe("OuraClient.request — daily_activity exclusive end_date", () => {
     expect(result.data[0].active_calories).toBe(410);
   });
 
-  it("leaves end_date untouched for inclusive endpoints", async () => {
+  it("does the same on endpoints that include the end day", async () => {
     const kv = fakeKV();
     const cache = fakeKV();
     await saveStoredToken(kv, SECRET, "u1", VALID_TOKEN);
-
-    fetchMock.mockResolvedValueOnce(jsonResponse(200, { data: [] }));
+    const paths = ["/usercollection/sleep", "/usercollection/daily_sleep", "/usercollection/daily_readiness"];
+    for (const _ of paths) {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(200, { data: [{ day: "2026-10-27" }, { day: "2026-10-28" }] })
+      );
+    }
 
     const client = new OuraClient(makeEnv(kv, cache), "u1");
-    await client.request("/usercollection/daily_sleep", {
-      start_date: "2026-10-25",
-      end_date: "2026-10-25",
+    for (const path of paths) {
+      const result = await client.request<{ data: Array<{ day: string }> }>(path, {
+        start_date: "2026-10-27",
+        end_date: "2026-10-27",
+      });
+      expect(result.data.map((doc) => doc.day)).toEqual(["2026-10-27"]);
+    }
+    const ends = fetchMock.mock.calls.map(([input]) => new URL(input as string).searchParams.get("end_date"));
+    expect(ends).toEqual(["2026-10-28", "2026-10-28", "2026-10-28"]);
+  });
+
+  it("drops rest-mode periods and enhanced tags that start after the requested end", async () => {
+    const kv = fakeKV();
+    const cache = fakeKV();
+    await saveStoredToken(kv, SECRET, "u1", VALID_TOKEN);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, {
+        data: [
+          { start_day: "2026-10-20", end_day: null },
+          { start_day: "2026-10-28", end_day: null },
+        ],
+      })
+    );
+
+    const client = new OuraClient(makeEnv(kv, cache), "u1");
+    const result = await client.request<{ data: Array<{ start_day: string }> }>(
+      "/usercollection/rest_mode_period",
+      { start_date: "2026-10-01", end_date: "2026-10-27" }
+    );
+
+    expect(result.data.map((doc) => doc.start_day)).toEqual(["2026-10-20"]);
+  });
+
+  it("leaves a request without end_date as it is", async () => {
+    const kv = fakeKV();
+    const cache = fakeKV();
+    await saveStoredToken(kv, SECRET, "u1", VALID_TOKEN);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, { data: [{ bpm: 61, timestamp: "2026-10-27T23:30:00+00:00" }] })
+    );
+
+    const client = new OuraClient(makeEnv(kv, cache), "u1");
+    const result = await client.request<{ data: unknown[] }>("/usercollection/heartrate", {
+      start_datetime: "2026-10-27T00:00:00Z",
+      end_datetime: "2026-10-28T00:00:00Z",
     });
 
     const url = new URL(fetchMock.mock.calls[0][0] as string);
-    expect(url.searchParams.get("end_date")).toBe("2026-10-25");
+    expect(url.searchParams.has("end_date")).toBe(false);
+    expect(url.searchParams.get("end_datetime")).toBe("2026-10-28T00:00:00Z");
+    expect(result.data).toHaveLength(1);
+  });
+
+  it("gives compare_to_baseline the requested night when /sleep leaves the end day out", async () => {
+    // The reported bug: HRV, resting HR and total sleep for the requested day
+    // came back null, while the baseline from the days before it was intact.
+    const kv = fakeKV();
+    const cache = fakeKV();
+    await saveStoredToken(kv, SECRET, "u1", VALID_TOKEN);
+    const nights = Array.from({ length: 90 }, (_, i) => ({
+      day: shiftDate("2026-10-27", -i),
+      type: "long_sleep",
+      total_sleep_duration: i === 0 ? 23256 : 25200,
+      average_hrv: i === 0 ? 17 : 30,
+      lowest_heart_rate: i === 0 ? 64 : 58,
+    }));
+    ouraWithExclusiveEnd({ "/usercollection/sleep": nights });
+
+    const client = new OuraClient(makeEnv(kv, cache), "u1");
+    const hrv = await executeCompareToBaseline(client, { metric: "hrv", date: "2026-10-27" });
+    const restingHr = await executeCompareToBaseline(client, { metric: "resting_hr", date: "2026-10-27" });
+    const sleepHours = await executeCompareToBaseline(client, { metric: "total_sleep_hours", date: "2026-10-27" });
+
+    expect(hrv.value).toBe(17);
+    expect(hrv.p30_mean).toBe(30);
+    expect(restingHr.value).toBe(64);
+    expect(sleepHours.value).toBe(6.46);
   });
 });
 

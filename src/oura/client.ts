@@ -13,15 +13,18 @@ const OURA_API_BASE = "https://api.ouraring.com/v2";
 const PERSONAL_INFO_PATH = "/usercollection/personal_info";
 const REFRESH_WINDOW_MS = 5 * 60 * 1000;
 const RATE_LIMIT_BACKOFF_MS = [1000, 2000, 4000];
-// Oura treats end_date as EXCLUSIVE on this endpoint (unlike daily_sleep,
-// daily_readiness, etc.), so start_date == end_date returns nothing and every
-// range silently drops its last day.
-const EXCLUSIVE_END_DATE_PATHS = new Set(["/usercollection/daily_activity"]);
 
 function nextDay(date: string): string {
   const d = new Date(`${date}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
+}
+
+// The day a doc belongs to. Rest-mode periods and enhanced tags have
+// start_day instead of day.
+function docDay(doc: { day?: unknown; start_day?: unknown }): string | undefined {
+  const day = doc.day ?? doc.start_day;
+  return typeof day === "string" ? day : undefined;
 }
 
 function sleep(ms: number) {
@@ -130,17 +133,24 @@ export class OuraClient {
 
   async request<T>(path: string, query?: Record<string, string>): Promise<T> {
     const requestedEnd = query?.end_date;
-    if (!EXCLUSIVE_END_DATE_PATHS.has(path) || !requestedEnd) {
+    if (!requestedEnd) {
       return this.fetchCached<T>(path, query);
     }
-    // Ask for one extra day so the requested end is included, then drop any
-    // doc past it so callers see inclusive semantics like every other endpoint.
+    // Oura's docs don't say whether end_date is inclusive, and the endpoints
+    // differ: daily_activity and sleep leave the end day out, daily_sleep and
+    // daily_readiness include it. So ask for one extra day, then drop docs
+    // past the requested end: callers get inclusive ranges on every endpoint.
+    // The cache TTL sees the extra day too. That keeps the user's today on the
+    // short TTL west of UTC, where it is still yesterday in UTC.
     const data = await this.fetchCached<T>(path, { ...query, end_date: nextDay(requestedEnd) });
-    const list = data as unknown as OuraListResponse<{ day?: string }>;
+    const list = data as unknown as OuraListResponse<{ day?: unknown; start_day?: unknown }>;
     if (!Array.isArray(list?.data)) return data;
     return {
       ...list,
-      data: list.data.filter((d) => typeof d.day !== "string" || d.day <= requestedEnd),
+      data: list.data.filter((doc) => {
+        const day = docDay(doc);
+        return day === undefined || day <= requestedEnd;
+      }),
     } as unknown as T;
   }
 
