@@ -43,6 +43,8 @@
       "custom_domain": true
     }
   ],
+  "workers_dev": false,
+  "preview_urls": false,
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1,
@@ -52,5 +54,47 @@
   },
   "dev": {
     "port": 8789
+  },
+  "env": {
+    // `npm run deploy:staging`. Same Oura app, its own Worker, KV and keys.
+    // Environments inherit routes and workers_dev, so both are overridden here;
+    // without that, a staging deploy would claim prod's custom domain.
+    "staging": {
+      "name": "mcpforoura-staging",
+      "routes": [],
+      "workers_dev": true,
+      "migrations": [
+        {
+          "new_sqlite_classes": ["OuraMCP"],
+          "tag": "v1"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "class_name": "OuraMCP",
+            "name": "MCP_OBJECT"
+          }
+        ]
+      },
+      "kv_namespaces": [
+        {
+          "binding": "OAUTH_KV",
+          "id": "84f97fb8fcb84cd1905793a15f7956f9"
+        },
+        {
+          "binding": "OURA_TOKENS",
+          "id": "8f05b7f37f3d4d20a1ba3396f6964193"
+        },
+        {
+          "binding": "OURA_CACHE",
+          "id": "affb7956aa724f39a791b3bb85bed2a8"
+        }
+      ],
+      "vars": {
+        "OURA_REDIRECT_URI": "https://mcpforoura-staging.smirnov-labs.workers.dev/oura/callback",
+        "PUBLIC_BASE_URL": "https://mcpforoura-staging.smirnov-labs.workers.dev"
+      }
+    }
   }
 }

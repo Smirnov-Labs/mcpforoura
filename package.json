@@ -10,6 +10,7 @@
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
     "cf-typegen": "wrangler types",
     "type-check": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:workers",
