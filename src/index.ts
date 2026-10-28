@@ -32,22 +32,26 @@ const oauthProvider = new OAuthProvider({
   tokenEndpoint: "/token",
   clientRegistrationEndpoint: "/register",
 
-  // OAuth 2.1 hardening: refuse the legacy implicit flow and refuse the
-  // "plain" PKCE method (S256 only).
-  allowImplicitFlow: false,
-  allowPlainPKCE: false,
-
   // Advertise the scopes we accept; clients see this via the
   // /.well-known/oauth-authorization-server document.
   scopesSupported: MCP_SCOPES,
+  // Scopes every /mcp call needs: published as the protected-resource
+  // metadata's scopes_supported and named in the 401 challenge.
+  requiredScopes: MCP_SCOPES,
+
+  // The provider defaults to 30-day grants and 90-day client registrations.
+  // Grants and clients issued before the 1.x upgrade never expire; keep
+  // that, rather than making every user sign in to Oura again each month.
+  refreshTokenTTL: undefined,
+  clientRegistrationTTL: undefined,
 
   // RFC 9728 protected-resource metadata, exposed at
-  // /.well-known/oauth-protected-resource. Explicit values so the
-  // response is stable across hosts.
+  // /.well-known/oauth-protected-resource/mcp. Explicit values so the
+  // response is stable across hosts. Every grant is bound to `resource`,
+  // so changing it signs existing users out.
   resourceMetadata: {
     resource: "https://mcp-oura.smirnov.link/mcp",
     authorization_servers: ["https://mcp-oura.smirnov.link"],
-    scopes_supported: MCP_SCOPES,
   },
 });
 
