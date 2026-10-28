@@ -150,9 +150,15 @@ echo -n "$VALUE" | npx wrangler secret put OURA_CLIENT_ID
 # repeat for OURA_CLIENT_SECRET, ENCRYPTION_SECRET
 ```
 
-Custom domain `mcp-oura.smirnov.link` is configured via `routes` in `wrangler.jsonc` with `custom_domain: true`. Works automatically because `smirnov.link` is in the same CF account.
+Custom domain `mcp-oura.smirnov.link` is configured via `routes` in `wrangler.jsonc` with `custom_domain: true`. Works automatically because `smirnov.link` is in the same CF account. `workers_dev` and `preview_urls` are off, so prod answers only on that domain.
 
-For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Oura redirect URI is a single value, so local dev typically uses `wrangler dev --remote` against the production redirect.
+### Staging
+
+`npm run deploy:staging` deploys `env.staging` to the `mcpforoura-staging` Worker at `https://mcpforoura-staging.smirnov-labs.workers.dev`. It has its own KV namespaces (`mcpforoura-staging-*`) and its own `ENCRYPTION_SECRET`, and uses the same Oura app, which lists `https://mcpforoura-staging.smirnov-labs.workers.dev/oura/callback` as a second redirect URI. Staging data is disposable: if its keys are lost, staging users sign in again.
+
+To test a change before prod, deploy it to staging, add `https://mcpforoura-staging.smirnov-labs.workers.dev/mcp` in Claude as a second custom connector, and call a few tools. Secrets go in with `npx wrangler secret put <NAME> --env staging`.
+
+For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Oura app knows only the prod and staging callbacks, so local dev typically uses `wrangler dev --remote` against the production redirect.
 
 ## Gotchas
 

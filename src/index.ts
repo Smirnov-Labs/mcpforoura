@@ -24,36 +24,43 @@ export class OuraMCP extends McpAgent<Env, Record<string, never>, AuthProps> {
 // what is already a curated, read-only tool surface.
 const MCP_SCOPES = ["mcp"];
 
-const oauthProvider = new OAuthProvider({
-  apiRoute: "/mcp",
-  apiHandler: OuraMCP.serve("/mcp"),
-  defaultHandler: app,
-  authorizeEndpoint: "/authorize",
-  tokenEndpoint: "/token",
-  clientRegistrationEndpoint: "/register",
+// baseUrl is env.PUBLIC_BASE_URL, so staging advertises itself, not prod.
+function createOAuthProvider(baseUrl: string) {
+  return new OAuthProvider({
+    apiRoute: "/mcp",
+    apiHandler: OuraMCP.serve("/mcp"),
+    defaultHandler: app,
+    authorizeEndpoint: "/authorize",
+    tokenEndpoint: "/token",
+    clientRegistrationEndpoint: "/register",
 
-  // Advertise the scopes we accept; clients see this via the
-  // /.well-known/oauth-authorization-server document.
-  scopesSupported: MCP_SCOPES,
-  // Scopes every /mcp call needs: published as the protected-resource
-  // metadata's scopes_supported and named in the 401 challenge.
-  requiredScopes: MCP_SCOPES,
+    // Advertise the scopes we accept; clients see this via the
+    // /.well-known/oauth-authorization-server document.
+    scopesSupported: MCP_SCOPES,
+    // Scopes every /mcp call needs: published as the protected-resource
+    // metadata's scopes_supported and named in the 401 challenge.
+    requiredScopes: MCP_SCOPES,
 
-  // The provider defaults to 30-day grants and 90-day client registrations.
-  // Grants and clients issued before the 1.x upgrade never expire; keep
-  // that, rather than making every user sign in to Oura again each month.
-  refreshTokenTTL: undefined,
-  clientRegistrationTTL: undefined,
+    // The provider defaults to 30-day grants and 90-day client registrations.
+    // Grants and clients issued before the 1.x upgrade never expire; keep
+    // that, rather than making every user sign in to Oura again each month.
+    refreshTokenTTL: undefined,
+    clientRegistrationTTL: undefined,
 
-  // RFC 9728 protected-resource metadata, exposed at
-  // /.well-known/oauth-protected-resource/mcp. Explicit values so the
-  // response is stable across hosts. Every grant is bound to `resource`,
-  // so changing it signs existing users out.
-  resourceMetadata: {
-    resource: "https://mcp-oura.smirnov.link/mcp",
-    authorization_servers: ["https://mcp-oura.smirnov.link"],
-  },
-});
+    // RFC 9728 protected-resource metadata, exposed at
+    // /.well-known/oauth-protected-resource/mcp. Explicit values so the
+    // response is stable across hosts. Every grant is bound to `resource`
+    // (https://mcp-oura.smirnov.link/mcp in prod), so changing it signs
+    // existing users out.
+    resourceMetadata: {
+      resource: `${baseUrl}/mcp`,
+      authorization_servers: [baseUrl],
+    },
+  });
+}
+
+// Built on the first request, once env is available.
+let oauthProvider: ReturnType<typeof createOAuthProvider> | undefined;
 
 // Wrap the OAuthProvider so we can intercept real browser GETs to /mcp and
 // serve a friendly "this is an MCP endpoint" page instead of a JSON 401.
@@ -70,6 +77,7 @@ export default {
         return renderMcpHelloPage(url);
       }
     }
+    oauthProvider ??= createOAuthProvider(env.PUBLIC_BASE_URL);
     return oauthProvider.fetch(request, env, ctx);
   },
 };
