@@ -154,9 +154,21 @@ Custom domain `mcp-oura.smirnov.link` is configured via `routes` in `wrangler.js
 
 ### Staging
 
-`npm run deploy:staging` deploys `env.staging` to the `mcpforoura-staging` Worker at `https://mcpforoura-staging.smirnov-labs.workers.dev`. It has its own KV namespaces (`mcpforoura-staging-*`) and its own `ENCRYPTION_SECRET`, and uses the same Oura app, which lists `https://mcpforoura-staging.smirnov-labs.workers.dev/oura/callback` as a second redirect URI. Staging data is disposable: if its keys are lost, staging users sign in again.
+`npm run deploy:staging` deploys `env.staging` to the `mcpforoura-staging` Worker at `https://mcpforoura-staging.smirnov-labs.workers.dev`. It has its own KV namespaces (`mcpforoura-staging-*`) and uses the same Oura app, which lists `https://mcpforoura-staging.smirnov-labs.workers.dev/oura/callback` as a second redirect URI.
 
-To test a change before prod, deploy it to staging, add `https://mcpforoura-staging.smirnov-labs.workers.dev/mcp` in Claude as a second custom connector, and call a few tools. Secrets go in with `npx wrangler secret put <NAME> --env staging`.
+Staging secrets: `OURA_CLIENT_ID` and `OURA_CLIENT_SECRET` have the same values as prod. `ENCRYPTION_SECRET` is staging's own and has no backup. Staging data is disposable: if the key is lost, staging users sign in again. Set a secret with `npx wrangler secret put <NAME> --env staging`.
+
+In Claude, staging is the custom connector "Oura Staging" at `https://mcpforoura-staging.smirnov-labs.workers.dev/mcp`. Prod is the connector at `https://mcp-oura.smirnov.link/mcp`, named "Oura" when added with the "Add to Claude" button.
+
+### Release flow
+
+1. Deploy the PR branch to staging: `npm run deploy:staging`.
+2. In Claude, use "Oura Staging" to call the tools the change touches. For a change to auth or dependencies, also sign in again: remove and re-add the connector.
+3. Merge the PR, then run `npx wrangler deploy` from `main`.
+4. Check prod. `/` returns 200. `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource/mcp` return 200 JSON. `POST /mcp` without a token returns 401 with a `resource_metadata` challenge. Then call a tool with the prod connector.
+5. If prod breaks, run `npx wrangler rollback` to return to the previous version.
+
+The root `/.well-known/oauth-protected-resource` returns 404 by design, see the `resourceMetadata` gotcha below.
 
 For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Oura app knows only the prod and staging callbacks, so local dev typically uses `wrangler dev --remote` against the production redirect.
 
@@ -222,12 +234,14 @@ All milestones complete:
 - ✅ 21 tools live (M6 core 3 + Phase 1–4 additional 16 + 2 diagnostics)
 - ✅ Vitest unit tests: 69 tests across 11 files (M9)
 - ✅ Off-by-one fixes: `span >= MAX_DAYS` in workouts, sessions, tags, rest_mode_periods
+- ✅ `daily_activity` end-date fix and calorie metrics; all dependencies at latest (`agents` 0.31, `workers-oauth-provider` 1.2, `npm audit` clean); staging environment (PR #25, 2026-10-27)
 - ❌ Phase 5 cycle tools removed (Oura v2 API has no public cycle endpoints)
 
 ## Known limits
 
 - **Oura v2 API has no menstrual-cycle endpoints.** Cycle Insights is app-only. If Oura ever exposes a public cycle API, restore Phase 5 from git history (`feat/phase-5-cycle` branch).
 - **VO2 max is sparse.** Oura only computes VO2 max from outdoor runs/walks with GPS. Measurements may be absent for weeks.
+- **`McpAgent` is deprecated upstream.** It still works on `agents` 0.31 with MCP SDK v1. The replacement is `createMcpHandler` on MCP SDK v2 (`@modelcontextprotocol/server`); migrating is a separate change, so test it on staging first.
 - **Cache-hit-skips-network integration test** deferred. The 17-test cache suite + OuraClient unit tests cover the behavior transitively. A dedicated `test/oura-client-cache.worker.test.ts` can be added later if this becomes a regression source.
 
 The original spec lives in the project's brainstorming notes; the high-value pieces are encoded above.
