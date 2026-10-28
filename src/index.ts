@@ -1,22 +1,36 @@
 import OAuthProvider, { type OAuthProviderOptions } from "@cloudflare/workers-oauth-provider";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { McpAgent } from "agents/mcp";
+import { McpServer } from "@modelcontextprotocol/server";
+import { createMcpHandler } from "agents/mcp/server";
+import { DurableObject } from "cloudflare:workers";
 import type { AuthProps } from "./auth/types.js";
 import { registerOuraTools } from "./mcp/registerTools.js";
 import app, { renderMcpHelloPage } from "./oauth-app.js";
 
-export class OuraMCP extends McpAgent<Env, Record<string, never>, AuthProps> {
-  server = new McpServer({
-    name: "mcpforoura",
-    version: "0.1.1",
-  });
-
-  async init() {
-    if (!this.props) {
+// /mcp is stateless: each request gets its own McpServer, built for the Oura
+// user in the grant's props. The OAuth provider checks the access token and
+// puts those props on ctx before it calls this handler.
+const mcpHandler = {
+  fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const props = ctx.props as AuthProps | undefined;
+    if (!props?.ouraUserId) {
       throw new Error("Missing authenticated user context");
     }
-    registerOuraTools(this.server, this.env, this.props);
-  }
+    const handler = createMcpHandler(() => {
+      const server = new McpServer({ name: "mcpforoura", version: "0.1.1" });
+      registerOuraTools(server, env, props);
+      return server;
+    });
+    return handler(request, env, ctx);
+  },
+};
+
+// Retired: /mcp ran on this McpAgent Durable Object until the stateless
+// handler above replaced it. Deleting the class takes a deleted_classes
+// migration, and Cloudflare blocks `wrangler rollback` across one, so the
+// class stays until prod no longer needs to roll back to McpAgent.
+export class OuraMCP extends DurableObject {
+  // A session that ended under McpAgent can still have an alarm queued.
+  async alarm() {}
 }
 
 // Scopes this server understands. Single "mcp" scope covers the bearer
@@ -29,7 +43,7 @@ const MCP_SCOPES = ["mcp"];
 export function oauthProviderOptions(baseUrl: string): OAuthProviderOptions<Env> {
   return {
     apiRoute: "/mcp",
-    apiHandler: OuraMCP.serve("/mcp"),
+    apiHandler: mcpHandler,
     defaultHandler: app,
     authorizeEndpoint: "/authorize",
     tokenEndpoint: "/token",

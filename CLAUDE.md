@@ -24,10 +24,10 @@ Cloudflare Worker (mcpforoura)
   │         POST /authorize    — verify CSRF, redirect to cloud.ouraring.com
   │         GET  /oura/callback — exchange code, fetch personal_info,
   │                              encrypt+save token, completeAuthorization
-  ├─ apiRoute "/mcp" → OuraMCP.serve("/mcp")
-  │     OuraMCP extends McpAgent (src/index.ts)
-  │       this.props.ouraUserId  — set by completeAuthorization
-  │       init() → registerOuraTools(server, env, props)
+  ├─ apiRoute "/mcp" → mcpHandler (src/index.ts), stateless
+  │     ctx.props.ouraUserId  — grant props, set by completeAuthorization
+  │     createMcpHandler (agents/mcp/server), per request:
+  │       new McpServer → registerOuraTools(server, env, props)
   │         per tool: new OuraClient(env, userId) → call → return JSON
   └─ Storage
         OAUTH_KV     — provider state, OAuth state tokens (TTL'd)
@@ -43,7 +43,7 @@ The two OAuth flows:
 
 ```
 src/
-├── index.ts                     OuraMCP class + OAuthProvider default export
+├── index.ts                     /mcp handler + OAuthProvider default export (+ retired OuraMCP)
 ├── oauth-app.ts                 Hono app: /, /privacy, /tos, /authorize, /oura/callback
 ├── env.d.ts                     adds secrets to Cloudflare.Env interface
 ├── auth/
@@ -91,7 +91,7 @@ src/
 ## Adding a new tool
 
 1. Create `src/mcp/tools/<name>.ts` with two exports:
-   - `<name>Schema` — Zod object describing inputs. Use strict regex on dates (see Timezones below).
+   - `<name>Schema` — a `z.object({...})` describing inputs. MCP SDK v2 deprecates a bare `{ field: z.string() }` shape. Use strict regex on dates (see Timezones below).
    - `execute<Name>(client: OuraClient, input: T): Promise<Result>` — pure function, no MCP knowledge.
 2. Register in `src/mcp/registerTools.ts`:
    ```typescript
@@ -175,17 +175,19 @@ For local dev: `cp .dev.vars.example .dev.vars`, fill in, `npm run dev`. The Our
 ## Gotchas
 
 - **wrangler.jsonc not .toml.** Spec said `.toml`; we use `.jsonc` to match the YNAB sister project.
-- **DO binding is `MCP_OBJECT`, not `MCP_AGENT`.** Same reason.
-- **`agents` leaves the MCP SDK to us.** Since `agents@0.31` both `@modelcontextprotocol/sdk` (v1, which `McpAgent` runs on) and `@modelcontextprotocol/server` (v2) are optional peers. List both, exact-pinned to the versions `agents` declares (`npm view agents@<v> peerDependencies`; currently `1.32.1` and `2.3.1` for `agents@0.31.0`). `agents/mcp` imports the v2 package even for `McpAgent`, so without it `wrangler deploy` fails with `Could not resolve "@modelcontextprotocol/server"`. A mismatched v1 SDK causes private-field type incompatibility on `McpServer.server._serverInfo`. Upstream has deprecated `McpAgent` in favour of `createMcpHandler` on SDK v2; it still works.
+- **`agents` leaves the MCP SDK to us.** `/mcp` runs `createMcpHandler` from `agents/mcp/server` with an `McpServer` from `@modelcontextprotocol/server` (MCP SDK v2). `agents` declares that package as an optional peer at an exact version (`npm view agents@<v> peerDependencies`; `2.3.1` for `agents@0.31.0`), so pin ours to the same version. Import from `agents/mcp/server`, not `agents/mcp`: `agents/mcp` also loads the deprecated `McpAgent`, which needs the v1 SDK (`@modelcontextprotocol/sdk`), and we don't install v1.
+- **`/mcp` has no sessions.** Each POST gets a new `McpServer`. The handler ignores `Mcp-Session-Id` and answers GET and DELETE with 405. A tool returns one result: it can't send notifications or ask the client anything (elicitation, sampling).
+- **`/mcp` refuses browser requests from other sites.** `createMcpHandler` answers 403 when the `Origin` header is present and is not localhost (or the staging `workers.dev` host). Server-side clients, such as Claude's connectors and Claude Code, send no `Origin`. To admit a browser-based client, pass `allowedOriginHostnames` to `createMcpHandler` in `src/index.ts`.
+- **`OuraMCP` is a retired Durable Object.** `/mcp` ran on it as an `McpAgent` until PR #26. It has no binding and does nothing. It stays exported because deleting it takes a `deleted_classes` migration, and Cloudflare blocks `wrangler rollback` across one. To delete it, add `{ "tag": "v2", "deleted_classes": ["OuraMCP"] }` to `migrations` in both environments and remove the class. That also deletes its storage.
 - **OAuth grants are bound to `resourceMetadata.resource`.** `workers-oauth-provider` 1.x compares each grant's stored `resource` with `https://mcp-oura.smirnov.link/mcp` exactly; change it and every user is signed out. Grants from before `resourceMetadata` was set (2026-05-17) carry the bare origin instead, so their next refresh fails and the client signs the user in again. To check a deployment, read the `grant:` keys in `OAUTH_KV`: the `resource` field is plain text.
 - **Grants and client registrations never expire.** `refreshTokenTTL` and `clientRegistrationTTL` are set to `undefined` on purpose: the provider's defaults (30-day grants, 90-day registrations) would make users sign in to Oura again every month. `refreshTokenIdleTTL` is the option for sliding expiry if that changes.
-- **Tests that import `src/oauth-app.ts` or `src/index.ts` must be `*.worker.test.ts`.** The oauth provider's runtime imports `cloudflare:workers`, which only resolves in workerd (the `@cloudflare/vitest-plugin` pool), not in the Node pool.
+- **Tests that import `src/oauth-app.ts` or `src/index.ts` must be `*.worker.test.ts`.** The oauth provider's runtime imports `cloudflare:workers`, which only resolves in workerd (the `@cloudflare/vitest-plugin` pool), not in the Node pool. `test/mcp-endpoint.worker.test.ts` drives `/mcp` end to end without Oura: it issues access tokens with `getOAuthApi(oauthProviderOptions(...), env)`.
 - **KV namespace titles are global per account.** When running `wrangler kv namespace create OAUTH_KV` in a CF account that already has another worker's `OAUTH_KV`, you'll collide. Use worker-prefixed titles like `mcpforoura-OAUTH_KV`. Binding name in `wrangler.jsonc` can stay as `OAUTH_KV` — bindings are per-worker.
 - **Multi-account CF login.** Add `"account_id": "<id>"` to `wrangler.jsonc` so commands aren't ambiguous.
 - **First deploy registers the worker.** `wrangler secret put` works after that.
 - **`FormDataEntryValue` is a DOM type.** Not in `lib: ["es2021"]`. Use `string | File | null` for `formData.get(...)` returns.
 - **`daily_activity` treats `end_date` as exclusive.** Every other daily endpoint is inclusive. `OuraClient.request` asks for `end_date + 1` on that path and filters out docs past the requested end, so callers can pass inclusive ranges everywhere. Without it, single-day activity queries return nothing and range queries drop their last day.
-- **The OAuth provider's `props` field is how user identity flows from callback to McpAgent.** Inside the agent, `this.props.ouraUserId` is set; outside, it's `undefined`.
+- **The grant's `props` carry the user's identity to the tools.** `/oura/callback` passes `{ ouraUserId }` to `completeAuthorization`. On each `/mcp` request the OAuth provider puts those props on `ctx.props`, and `mcpHandler` hands them to `registerOuraTools`.
 
 ## Tool inventory
 
@@ -235,13 +237,14 @@ All milestones complete:
 - ✅ Vitest unit tests: 69 tests across 11 files (M9)
 - ✅ Off-by-one fixes: `span >= MAX_DAYS` in workouts, sessions, tags, rest_mode_periods
 - ✅ `daily_activity` end-date fix and calorie metrics; all dependencies at latest (`agents` 0.31, `workers-oauth-provider` 1.2, `npm audit` clean); staging environment (PR #25, 2026-10-27)
+- ✅ `/mcp` moved from `McpAgent` to the stateless `createMcpHandler` on MCP SDK v2; MCP SDK v1 dropped (PR #26)
 - ❌ Phase 5 cycle tools removed (Oura v2 API has no public cycle endpoints)
 
 ## Known limits
 
 - **Oura v2 API has no menstrual-cycle endpoints.** Cycle Insights is app-only. If Oura ever exposes a public cycle API, restore Phase 5 from git history (`feat/phase-5-cycle` branch).
 - **VO2 max is sparse.** Oura only computes VO2 max from outdoor runs/walks with GPS. Measurements may be absent for weeks.
-- **`McpAgent` is deprecated upstream.** It still works on `agents` 0.31 with MCP SDK v1. The replacement is `createMcpHandler` on MCP SDK v2 (`@modelcontextprotocol/server`); migrating is a separate change, so test it on staging first.
+- **The retired `OuraMCP` Durable Object is still deployed.** Delete it once prod no longer needs to roll back to an `McpAgent` version; see Gotchas.
 - **Cache-hit-skips-network integration test** deferred. The 17-test cache suite + OuraClient unit tests cover the behavior transitively. A dedicated `test/oura-client-cache.worker.test.ts` can be added later if this becomes a regression source.
 
 The original spec lives in the project's brainstorming notes; the high-value pieces are encoded above.

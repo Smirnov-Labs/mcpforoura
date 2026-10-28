@@ -19,7 +19,7 @@ const METRIC = z.enum([
   "efficiency_pct",
 ]);
 
-export const correlateTagWithMetricSchema = {
+export const correlateTagWithMetricSchema = z.object({
   metric: METRIC.describe("Metric to compare across tagged vs untagged days."),
   tag_type_code: z
     .string()
@@ -41,7 +41,7 @@ export const correlateTagWithMetricSchema = {
     .max(365)
     .optional()
     .describe("Window size 7-365 days. Default 90."),
-};
+});
 
 export interface CorrelateInput {
   metric: Metric;

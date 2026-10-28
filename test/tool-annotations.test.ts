@@ -1,5 +1,5 @@
 // test/tool-annotations.test.ts
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { AuthProps } from "../src/auth/types";
 import { registerOuraTools } from "../src/mcp/registerTools";

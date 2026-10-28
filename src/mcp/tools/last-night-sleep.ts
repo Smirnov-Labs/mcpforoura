@@ -1,8 +1,9 @@
+import { z } from "zod";
 import type { OuraClient } from "../../oura/client.js";
 import type { DailySleep, SleepPeriod } from "../../oura/types.js";
 import { shiftDate, today } from "./dates.js";
 
-export const lastNightSleepSchema = {};
+export const lastNightSleepSchema = z.object({});
 
 export interface LastNightSleepResult {
   available: boolean;

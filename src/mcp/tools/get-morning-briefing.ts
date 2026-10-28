@@ -11,12 +11,12 @@ import type {
 import { OuraReauthRequired, OuraAccountUnavailable } from "../../errors.js";
 import { resolveDate, shiftDate } from "./dates.js";
 
-export const getMorningBriefingSchema = {
+export const getMorningBriefingSchema = z.object({
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .describe("Today's date YYYY-MM-DD, user's LOCAL date."),
-};
+});
 
 export interface GetMorningBriefingInput {
   date: string;

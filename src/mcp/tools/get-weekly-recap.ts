@@ -11,7 +11,7 @@ import { OuraInvalidInput, OuraReauthRequired, OuraAccountUnavailable } from "..
 import { daysBetween, isIsoDate, shiftDate } from "./dates.js";
 import { mean, nonNull, round } from "./stats.js";
 
-export const getWeeklyRecapSchema = {
+export const getWeeklyRecapSchema = z.object({
   end_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -23,7 +23,7 @@ export const getWeeklyRecapSchema = {
     .max(28)
     .optional()
     .describe("Window size in days, 1-28. Default 7."),
-};
+});
 
 export interface GetWeeklyRecapInput {
   end_date: string;

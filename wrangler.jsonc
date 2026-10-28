@@ -5,20 +5,14 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-05-01",
   "compatibility_flags": ["nodejs_compat"],
+  // OuraMCP is retired and has no binding. A deleted_classes migration
+  // removes it later; see the comment on the class in src/index.ts.
   "migrations": [
     {
       "new_sqlite_classes": ["OuraMCP"],
       "tag": "v1"
     }
   ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "class_name": "OuraMCP",
-        "name": "MCP_OBJECT"
-      }
-    ]
-  },
   "kv_namespaces": [
     {
       "binding": "OAUTH_KV",
@@ -69,14 +63,6 @@
           "tag": "v1"
         }
       ],
-      "durable_objects": {
-        "bindings": [
-          {
-            "class_name": "OuraMCP",
-            "name": "MCP_OBJECT"
-          }
-        ]
-      },
       "kv_namespaces": [
         {
           "binding": "OAUTH_KV",

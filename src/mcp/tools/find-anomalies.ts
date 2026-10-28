@@ -18,7 +18,7 @@ const METRIC = z.enum([
   "efficiency_pct",
 ]);
 
-export const findAnomaliesSchema = {
+export const findAnomaliesSchema = z.object({
   metric: METRIC.describe("Metric to scan for outliers."),
   end_date: z
     .string()
@@ -37,7 +37,7 @@ export const findAnomaliesSchema = {
     .max(5)
     .optional()
     .describe("Z-score magnitude that qualifies as an anomaly. Default 2."),
-};
+});
 
 export interface FindAnomaliesInput {
   metric: Metric;
